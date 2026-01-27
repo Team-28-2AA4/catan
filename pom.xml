@@ -2,7 +2,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.McMaster.SE2OP3.2024</groupId>
   <artifactId>assignment01_Team_28</artifactId> <!-- this is the first part of the name of your jar file after 'mvn package' -->
   <packaging>jar</packaging>
   <version>0.1.0</version><!-- this is the second part of the name of your jar file after 'mvn package' -->
