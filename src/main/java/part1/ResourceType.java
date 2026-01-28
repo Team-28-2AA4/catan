@@ -6,6 +6,6 @@ public class ResourceType {
     LUMBER, 
     ORE, 
     GRAIN, 
-    WOOL,
+    WOOL
     
 }

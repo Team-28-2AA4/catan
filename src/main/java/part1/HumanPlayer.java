@@ -12,5 +12,10 @@ public class HumanPlayer extends Player {
 
     } 
 
-    
+
+    public void turn(){
+
+        int roll = diceRoll();
+        
+    }
 }

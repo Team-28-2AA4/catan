@@ -52,6 +52,45 @@ public class Board {
 
 
 
+    public List<ResourceType> getResourceTypesForDiceToken(int diceToken) {
+
+        List<ResourceType> resourceTypes = new ArrayList<>();
+
+        for (int i = 0; i < tiles.length; i++) {
+
+            TerrainTile tile = tiles[i];
+            if (tile != null && tile.diceToken == diceToken) {
+
+                resourceTypes.add(tile.resourceType);
+            }
+        }
+
+        return resourceTypes;
+    }
+
+    public TerrainTile getTile(int tileId) {
+        return tiles[tileId];
+    }
+
+    public Building getBuilding(int nodeId){
+        return buildings[nodeId];
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

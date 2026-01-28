@@ -1,13 +1,15 @@
 package part1;
+import java.util.Random;
 
 public abstract class Player {
 
     private final int[] resourceCounts = new int[ResourceType.values().length];
-    private int[] buildingsCounts = new int[BuildingKind.value().length];
+    private int[] buildingsCounts = new int[BuildingKind.values().length];
     private int roadsCount;
     private int victoryPoints;
     private int longestRoadStreak;
     private int turns;
+    private final Random r;
 
     public Player(){
 
@@ -15,12 +17,23 @@ public abstract class Player {
         this.victoryPoints = 0;
         this.longestRoadStreak = 0;
         this.turns = 0;
+        this.r = new Random();
 
     }
 
-    public abstract turn();
+    public abstract void turn(Board board);
 
 
+
+
+    public int diceRoll(){
+
+        int die1 = r.nextInt(6) + 1;
+        int die2 = r.nextInt(6) + 1;
+        return die1 + die2;
+
+    }
+    public void endTurn();
 
 
 
