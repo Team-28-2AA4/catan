@@ -58,9 +58,6 @@ public class Board {
 
 
     // Nested Types
-    public enum ResourceType { BRICK, LUMBER, ORE, GRAIN, WOOL }
-    public enum BuildingKind { SETTLEMENT, CITY }
-
 
     public static final class TerrainTile {
 
