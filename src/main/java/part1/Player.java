@@ -6,7 +6,7 @@ public abstract class Player {
     private final int playerId;
 
     private final int[] resourceCounts = new int[ResourceType.values().length];
-    private int[] buildingsCounts = new int[BuildingKind.values().length];
+    private int[] buildingCounts = new int[BuildingKind.values().length];
 
     private int roadsCount;
     private int victoryPoints;
@@ -80,7 +80,7 @@ public abstract class Player {
         return resourceCounts[type.ordinal()] >= amount;
     }
     
-    public void spendResource(Resource type, int amount){
+    public void spendResource(ResourceType type, int amount){
         int index = type.ordinal();
         if (resourceCounts[index] < amount) {
             throw new IllegalStateException("Not enough" + type);

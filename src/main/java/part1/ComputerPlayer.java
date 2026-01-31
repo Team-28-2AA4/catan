@@ -25,12 +25,12 @@ public class ComputerPlayer extends Player {
         int roll = diceRoll();
 
         // 2) check to add resources based on roll
-        for (int i = 0; tileId < Board.TILE_COUNT; tileId++) {
+        for (int tileId = 0; tileId < Board.TILE_COUNT; tileId++) {
 
             Board.TerrainTile tile = board.getTile(tileId);
 
             if (tile == null){
-                continue
+                continue;
             }
             if (tile.diceToken != roll) {
                 continue;
@@ -50,7 +50,7 @@ public class ComputerPlayer extends Player {
                 }
 
                 int amount = (building.kind == BuildingKind.SETTLEMENT) ? 1 : 2;
-                addResource(title.resourceType, amount);
+                addResource(tile.resourceType, amount);
             }
 
         }
@@ -80,7 +80,7 @@ public class ComputerPlayer extends Player {
                 continue;
             }
             if (board.violatesDistanceRule(nodeId)) {
-                continue
+                continue;
             }
 
             board.placeSettlement(nodeId, getPlayerId());
@@ -88,24 +88,24 @@ public class ComputerPlayer extends Player {
 
         }
 
-        return -1;
+        throw new IllegalStateException("Nowhere to place a valid settlement");
 
     }
 
-    public int placeRandomValidRoad(Board board, boolean isSecondSettlement) {
+    public int placeRandomValidRoad(Board board, int settlementNodeId) {
 
-        List<Integer> adjacentEdgeIndicies = board.getAdjacentEdgeIndiciesForNode(settlementNodeId);
+        List<Integer> adjacentEdgeIndices = board.getAdjacentEdgeIndicesForNode(settlementNodeId);
 
-        if (adjacentEdgeIndicies.isEmpty()) {
+        if (adjacentEdgeIndices.isEmpty()) {
             throw new IllegalStateException("No edges adjacent to node " + settlementNodeId + ". Board edges arent initialized yet.");
         }
 
         List<Integer> freeAdjacentEdges = new ArrayList<>();
-        for (int i = 0; i < adjacentEdgeIndicies.size(); i++){
+        for (int i = 0; i < adjacentEdgeIndices.size(); i++){
 
-            int edgeIndex = adjacentEdgeIndicies.get(i);
+            int edgeIndex = adjacentEdgeIndices.get(i).intValue();
             if (board.isRoadEmpty(edgeIndex)){
-                freeAdjacentEdges.add(edgeIndex);
+                freeAdjacentEdges.add(Integer.valueOf(edgeIndex));
             }
 
         }

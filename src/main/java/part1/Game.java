@@ -177,7 +177,7 @@ public class Game {
             displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement at node " + settlementNodeId);
 
             int edgeIndex = cp.placeRandomValidRoad(board, settlementNodeId);
-            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement at node " + settlementNodeId);
+            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed road at edge " + edgeIndex + " (edjacent to node " + settlementNodeId + ")");
 
             return settlementNodeId;
 
@@ -187,22 +187,41 @@ public class Game {
 
     }
 
-    private void addStartingResourcesFromSecondSettlement() {
+    private void addStartingResourcesFromSecondSettlement(Player p, int settlementNodeId) {
 
         Board.Node node = board.getNode(settlementNodeId);
 
-        Integer [] adjacentTileIds = node.adjacentTileIds.toArray(new Integer[0]);
+        Integer[] adjacentTileIds = node.adjacentTileIds.toArray(new Integer[0]);
 
         for (int i = 0; i < adjacentTileIds.length; i++) {
 
-            int tileId = adjacentTileIds[i];
+            int tileId = adjacentTileIds[i].intValue();
 
             Board.TerrainTile tile = board.getTile(tileId);
             if (tile == null) {
                 continue;
             }
+            if (tile.resourceType == null) { // desert
+                continue;
+            }
 
             p.addResource(tile.resourceType, 1);
+        }
+
+        displayTurnSummary(2, p.getPlayerId(), "Gained starting resources from 2nd settlement at node " + settlementNodeId);
+
+    }
+
+    private void displayTurnSummary(int roundNumber, int playerId, String action) {
+
+        System.out.println("[" + roundNumber + "] / [" + playerId + "]: " + action);
+
+        try { 
+            Thread.sleep(3000);
+        } 
+
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
     }

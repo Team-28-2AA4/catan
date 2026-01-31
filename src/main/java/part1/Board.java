@@ -30,7 +30,7 @@ public class Board {
     private Building[] buildings = new Building[NODE_COUNT];
     private Road[] roads = new Road[EDGE_COUNT];
 
-    private final List<Integer>[] nodeToEdgeIndicies = (List<Integer>[]) new List[NODE_COUNT];
+    private final List<Integer>[] nodeToEdgeIndices = (List<Integer>[]) new List[NODE_COUNT];
     private static final TerrainTile[] terrainTilesSetup = new TerrainTile[] {
 
         new TerrainTile(0, ResourceType.LUMBER, 10, new int[] {0, 1, 2, 3, 4, 5}),
@@ -53,7 +53,7 @@ public class Board {
         new TerrainTile(17, ResourceType.LUMBER, 2, new int[] {50, 51, 52, 23, 22, 49}),
         new TerrainTile(18, ResourceType.WOOL, 10, new int[] {52, 53, 24, 7, 6, 23})
 
-    }
+    };
 
 
     public Board() {
@@ -63,47 +63,137 @@ public class Board {
         initTilesFromSetupArray();
         populateNodeAdjacentTileIdsFromTiles();
         buildEdgesFromTilePerimetersAndAssignIds();
-        populateNodeNeighbourNodeIdsFromEdges(); s
+        populateNodeNeighbourNodeIdsFromEdges();
 
     }
 
     // Initialize Board helpers
     private void initEmptyState() {
-
         for (int i = 0; i < NODE_COUNT; i++) {
             buildings[i] = null;
         }
-
+        for (int i = 0; i < EDGE_COUNT; i++) {
+            roads[i] = null;
+        }
+        edges.clear();
     }
 
     private void initNodes0to53() {
-
-
-
+        for (int nodeId = 0; nodeId < NODE_COUNT; nodeId++) {
+            nodes[nodeId] = new Node(nodeId);
+        }
     }
 
     private void initTilesFromSetupArray() {
-
-
-
+        for (int i = 0; i < terrainTilesSetup.length; i++) {
+            TerrainTile t = terrainTilesSetup[i];
+            int tileId = t.tileId;
+            tiles[tileId] = t;
+        }
     }
 
     private void populateNodeAdjacentTileIdsFromTiles() {
+        for (int tileId = 0; tileId < TILE_COUNT; tileId++) {
+            TerrainTile t = tiles[tileId];
 
+            for (int i = 0; i < t.cornerNodeIdsClockwise.length; i++) {
+                int nodeId = t.cornerNodeIdsClockwise[i];
 
+                if (nodeId < 0 || nodeId >= NODE_COUNT) {
+                    throw new IllegalStateException("Tile " + tileId + " has invalid nodeId " + nodeId);
+                }
 
+                nodes[nodeId].adjacentTileIds.add(Integer.valueOf(tileId));
+            }
+        }
     }
 
     private void buildEdgesFromTilePerimetersAndAssignIds() {
 
+        boolean[][] hasEdge = new boolean[NODE_COUNT][NODE_COUNT];
 
+        int[][] edgePairs = new int[EDGE_COUNT][2];
+        int edgeCount = 0;
+
+        for (int tileId = 0; tileId < TILE_COUNT; tileId++) {
+            int[] c = tiles[tileId].cornerNodeIdsClockwise;
+
+            for (int i = 0; i < 6; i++) {
+                int a = c[i];
+                int b = c[(i+1) % 6];
+
+                int n1 = Math.min(a,b);
+                int n2 = Math.max(a,b);
+
+                if (!hasEdge[n1][n2]) {
+                    hasEdge[n1][n2] = true;
+
+                    if (edgeCount >= EDGE_COUNT) {
+                        throw new IllegalStateException("Generated more than " + EDGE_COUNT + " unique edges.");
+                    }
+
+                    edgePairs[edgeCount][0] = n1;
+                    edgePairs[edgeCount][1] = n2;
+                    edgeCount++;
+                }
+            }
+        }
+
+        for (int i = 0; i < EDGE_COUNT - 1; i++) {
+            int best = i;
+
+            for (int j = i + 1; j < EDGE_COUNT; j++) {
+                int a1 = edgePairs[j][0];
+                int a2 = edgePairs[j][1];
+                int b1 = edgePairs[best][0];
+                int b2 = edgePairs[best][1];
+
+                boolean isSmaller = (a1 < b1) || (a1 == b1 && a2 < b2);
+                if (isSmaller) {
+                    best = j;
+                }
+            }
+
+            if (best != i) {
+                int t1 = edgePairs[i][0];
+                int t2 = edgePairs[i][1];
+
+                edgePairs[i][0] = edgePairs[best][0];
+                edgePairs[i][1] = edgePairs[best][1];
+
+                edgePairs[best][0] = t1;
+                edgePairs[best][1] = t2;
+
+            }
+        }
+
+        edges.clear();
+
+        for (int edgeIndex = 0; edgeIndex < EDGE_COUNT; edgeIndex++) {
+            int node1 = edgePairs[edgeIndex][0];
+            int node2 = edgePairs[edgeIndex][1];
+
+            edges.add(new Edge (node1, node2, edgeIndex));
+
+        }
 
     }
 
     private void populateNodeNeighbourNodeIdsFromEdges() {
 
+        for (int nodeId = 0; nodeId < NODE_COUNT; nodeId++) {
+            nodes[nodeId].neighbourNodeIds.clear();
+        }
 
+        for (int i = 0; i < edges.size(); i++) {
+            Edge e = edges.get(i);
 
+            int a = e.node1;
+            int b = e.node2;
+
+            nodes[a].neighbourNodeIds.add(Integer.valueOf(b));
+            nodes[b].neighbourNodeIds.add(Integer.valueOf(a));
+        }
     }
 
 
@@ -139,34 +229,6 @@ public class Board {
 
     // Methods
 
-
-    public boolean violatesDistanceRule(int nodeId) {
-        
-        Node n = nodes[nodeId];
-        if (n == null) {
-            reutrn false;
-        }
-
-        Integer[] neighbourIds = n.neighbourNodeIds.toArray(new Integer[0]);
-
-        for (int i = 0; i < neighbourIds.length; i++) {
-
-            int neighbourId = neighbourIds[i].intValue();
-
-            boolean neighbourIdIsValid = (neighbourId >= 0) && (neighbourId <   NODE_COUNT);
-            if (!neighbourIdIsValid) {
-                continue;
-            }
-
-            boolean neighbourHasBuilding = (buildings[neighbourId != null]);
-            if (neighbourHasBuilding) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public void placeSettlement(int nodeId, int ownerPlayerId) {
 
         if (!isNodeEmpty(nodeId)){
@@ -176,7 +238,7 @@ public class Board {
             throw new IllegalStateException("Distance rule violated at node: " + nodeId);
         }
 
-        roads[nodeId] = new Road(ownerPlayerId, nodeId, BuildingKind.SETTLEMENT);
+        buildings[nodeId] = new Building(ownerPlayerId, nodeId, BuildingKind.SETTLEMENT);
     
     }
 
@@ -193,11 +255,38 @@ public class Board {
     
     }
 
-    public List<Integer> getAdjacentEdgeIndiciesForNode(int nodeId){
+    public boolean violatesDistanceRule(int nodeId) {
+        
+        Node n = nodes[nodeId];
+        if (n == null) {
+            return false;
+        }
+
+        Integer[] neighbourIds = n.neighbourNodeIds.toArray(new Integer[0]);
+
+        for (int i = 0; i < neighbourIds.length; i++) {
+
+            int neighbourId = neighbourIds[i].intValue();
+
+            boolean neighbourIdIsValid = (neighbourId >= 0) && (neighbourId <   NODE_COUNT);
+            if (!neighbourIdIsValid) {
+                continue;
+            }
+
+            boolean neighbourHasBuilding = (buildings[neighbourId] != null);
+            if (neighbourHasBuilding) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public List<Integer> getAdjacentEdgeIndicesForNode(int nodeId){
 
         List<Integer> result = new ArrayList<Integer>();
         
-        for (int i = 0; i < adges.size(); i++) {
+        for (int i = 0; i < edges.size(); i++) {
             
             Edge e = edges.get(i);
 
@@ -205,7 +294,7 @@ public class Board {
                 continue;
             }
 
-            boolean touchesNode (e.node1 == nodeId) || (e.node2 == nodeId);
+            boolean touchesNode = (e.node1 == nodeId) || (e.node2 == nodeId);
             if (touchesNode) {
                 result.add(Integer.valueOf(e.edgeIndex));
             }

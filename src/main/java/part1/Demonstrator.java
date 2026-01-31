@@ -1,4 +1,6 @@
 package part1;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Demonstrator {
 
@@ -13,7 +15,7 @@ public class Demonstrator {
         // implement a simple linear check of all the actions that can be executed, and pick one randomly.
 
         List<Player> players = new ArrayList<>();
-        
+
         players.add(new ComputerPlayer(0));
         players.add(new ComputerPlayer(1));
         players.add(new ComputerPlayer(2));
