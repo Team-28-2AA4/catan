@@ -4,16 +4,20 @@ import java.util.Random;
 public abstract class Player {
 
     private final int playerId;
+
     private final int[] resourceCounts = new int[ResourceType.values().length];
     private int[] buildingsCounts = new int[BuildingKind.values().length];
+
     private int roadsCount;
     private int victoryPoints;
     private int longestRoadStreak;
     private int turns;
+
     private final Random r;
 
-    public Player(){
+    public Player(int playerId){
 
+        this.playerId = playerId;
         this.roadsCount = 0;
         this.victoryPoints = 0;
         this.longestRoadStreak = 0;
@@ -36,8 +40,6 @@ public abstract class Player {
         return die1 + die2;
 
     }
-    
-    public void endTurn();
 
 
 

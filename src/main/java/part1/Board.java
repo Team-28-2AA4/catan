@@ -13,6 +13,7 @@ import java.util.*;
  *      5) Road
  * 
  */
+
 public class Board {
 
     // finals
@@ -29,14 +30,8 @@ public class Board {
     private Building[] buildings = new Building[NODE_COUNT];
     private Road[] roads = new Road[EDGE_COUNT];
 
+    private static final ResourceType[] TILE_RESOURCE_TYPES = new ResourceType[] 
 
-
-
-
-
-
-
-    // Methods
     public Board() {
 
         // 1) Create Node objects
@@ -50,6 +45,93 @@ public class Board {
         
     }
 
+
+
+
+
+
+
+
+
+
+
+
+    // Methods
+
+
+    public boolean violatesDistanceRule(int nodeId) {
+        
+        Node n = nodes[nodeId];
+        if (n == null) {
+            reutrn false;
+        }
+
+        Integer[] neighbourIds = n.neighbourNodeIds.toArray(new Integer[0]);
+
+        for (int i = 0; i < neighbourIds.length; i++) {
+
+            int neighbourId = neighbourIds[i].intValue();
+
+            boolean neighbourIdIsValid = (neighbourId >= 0) && (neighbourId <   NODE_COUNT);
+            if (!neighbourIdIsValid) {
+                continue;
+            }
+
+            boolean neighbourHasBuilding = (buildings[neighbourId != null]);
+            if (neighbourHasBuilding) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void placeSettlement(int nodeId, int ownerPlayerId) {
+
+        if (!isNodeEmpty(nodeId)){
+            throw new IllegalStateException("Node is alreayd occupied: " + nodeId);
+        }
+        if (violatesDistanceRule(nodeId)) {
+            throw new IllegalStateException("Distance rule violated at node: " + nodeId);
+        }
+
+        roads[nodeId] = new Road(ownerPlayerId, nodeId, BuildingKind.SETTLEMENT);
+    
+    }
+
+    public void placeRoad(int edgeIndex, int ownerPlayerId) {
+
+        if (edgeIndex < 0 || edgeIndex >= EDGE_COUNT){
+            throw new IllegalStateException("Invalid edgeIndex: " + edgeIndex);
+        }
+        if (roads[edgeIndex] != null) {
+            throw new IllegalStateException("There is already a road at edgeIndex: " + edgeIndex);
+        }
+
+        roads[edgeIndex] = new Road(ownerPlayerId, edgeIndex);
+    
+    }
+
+    public List<Integer> getAdjacentEdgeIndiciesForNode(int nodeId){
+
+        List<Integer> result = new ArrayList<Integer>();
+        
+        for (int i = 0; i < adges.size(); i++) {
+            
+            Edge e = edges.get(i);
+
+            if (e == null) {
+                continue;
+            }
+
+            boolean touchesNode (e.node1 == nodeId) || (e.node2 == nodeId);
+            if (touchesNode) {
+                result.add(Integer.valueOf(e.edgeIndex));
+            }
+        }
+
+        return result;
+    }
 
 
     public List<ResourceType> getResourceTypesForDiceToken(int diceToken) {
@@ -68,12 +150,29 @@ public class Board {
         return resourceTypes;
     }
 
+
+
+
+
+
+
+
+
+    // Getters
     public TerrainTile getTile(int tileId) {
         return tiles[tileId];
     }
-
+    public Node getNode(int nodeId) {
+        return nodes[nodeId];
+    }
     public Building getBuilding(int nodeId){
         return buildings[nodeId];
+    }
+    public boolean isRoadEmpty(int edgeIndex) {
+        return roads[edgeIndex] == null;
+    }
+    public boolean isNodeEmpty(int nodeId) {
+        return buildings[nodeId] == null;
     }
 
 

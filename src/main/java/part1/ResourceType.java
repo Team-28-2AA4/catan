@@ -1,6 +1,6 @@
 package part1;
 
-public class ResourceType {
+public enum ResourceType {
 
     BRICK, 
     LUMBER, 

@@ -12,13 +12,16 @@ public class Demonstrator {
         // Agents with more than 7 cards in their hand must try to spend those cards by building something.
         // implement a simple linear check of all the actions that can be executed, and pick one randomly.
 
-        Player agent1 = new ComputerPlayer();
-        Player agent2 = new ComputerPlayer();
-        Player agent3 = new ComputerPlayer();
-        Player agent4 = new ComputerPlayer();
+        List<Player> players = new ArrayList<>();
+        
+        players.add(new ComputerPlayer(0));
+        players.add(new ComputerPlayer(1));
+        players.add(new ComputerPlayer(2));
+        players.add(new ComputerPlayer(3));
 
         Board board = new Board();
-        Game game = new Game(board);
+        Game game = new Game(board, players);
+
         game.startGame();
 
     }

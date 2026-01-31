@@ -1,6 +1,6 @@
 package part1;
 
-public class BuildingKind {
+public enum BuildingKind {
 
     SETTLEMENT,
     CITY

@@ -1,7 +1,6 @@
 package part1;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class Game {
 
@@ -18,16 +17,16 @@ public class Game {
     private boolean isWinner;
     private Player winner;
 
-    private final Random r = new Random();
-
 
     public Game(Board board, List<Player> players) {
 
         this.board = board;
         this.players = new ArrayList<>(players);
+
         this.startingPlayerIndex = 0;
         this.currentPlayerIndex = 0;
         this.rounds = 0;
+
         this.isWinner = false;
         this.winner = null;
 
@@ -41,8 +40,9 @@ public class Game {
     public void startGame() {
 
         determineStartingPlayer();
+
         playFirstTwoRoundsSetup();
-        playMainGame();
+        // playMainGame();
 
     }
 
@@ -89,8 +89,7 @@ public class Game {
             int index = getPlayerIndexClockwise(startingPlayerIndex, step);
             Player p = players.get(index);
 
-            placeInitialSettlementAndRoad(p, false);
-            
+            placeInitialSettlementAndRoad(p, 1);
             currentPlayerIndex = index;
         }
 
@@ -100,12 +99,14 @@ public class Game {
             int index = getPlayerIndexCounterClockwise(startingPlayerIndex, step);
             Player p = players.get(index);
 
-            int secondSettlementNodeId = placeInitialSettlementAndRoad(p, true);
+            int secondSettlementNodeId = placeInitialSettlementAndRoad(p, 2);
             addStartingResourcesFromSecondSettlement(p, secondSettlementNodeId);
             
-            currentPlayerIndex = startingPlayerIndex;
-            rounds = 0;
+            currentPlayerIndex = index;
         }
+
+        currentPlayerIndex = startingPlayerIndex;
+        rounds = 0;
 
     }
 
@@ -166,14 +167,43 @@ public class Game {
 
     }
 
-    private int placeInitialSettlementAndRoad() {
+    private int placeInitialSettlementAndRoad(Player p, int roundNumber) {
+
+        if (p instanceof ComputerPlayer) {
+
+            ComputerPlayer cp = (ComputerPlayer) p;
+
+            int settlementNodeId = cp.placeRandomValidHouse(board, (roundNumber == 2));
+            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement at node " + settlementNodeId);
+
+            int edgeIndex = cp.placeRandomValidRoad(board, settlementNodeId);
+            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement at node " + settlementNodeId);
+
+            return settlementNodeId;
+
+        }
 
         return -1;
-        
+
     }
 
     private void addStartingResourcesFromSecondSettlement() {
 
+        Board.Node node = board.getNode(settlementNodeId);
+
+        Integer [] adjacentTileIds = node.adjacentTileIds.toArray(new Integer[0]);
+
+        for (int i = 0; i < adjacentTileIds.length; i++) {
+
+            int tileId = adjacentTileIds[i];
+
+            Board.TerrainTile tile = board.getTile(tileId);
+            if (tile == null) {
+                continue;
+            }
+
+            p.addResource(tile.resourceType, 1);
+        }
 
     }
 
