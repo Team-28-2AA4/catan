@@ -14,6 +14,14 @@ import java.util.*;
  * 
  */
 
+/**
+ * 
+ * 
+ * Fatihun committed
+ * 
+ * 
+ */
+
 public class Board {
 
     // finals
