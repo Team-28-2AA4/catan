@@ -26,7 +26,7 @@ public abstract class Player {
 
         this.roadsCount = 15;
         addBuilding(BuildingKind.SETTLEMENT, 5);
-        addBuilding(BuildingKind.CITY, 5);
+        addBuilding(BuildingKind.CITY, 4);
 
         this.playerId = playerId;
         this.victoryPoints = 0;
