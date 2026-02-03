@@ -3,29 +3,25 @@ import java.util.*;
 
 /**
  * Board
- * Manages the initialization of the game Board and the state of the placed pieces 
- * 
- * Nested Classes:
- *      1) TerrainTile
- *      2) Node
- *      3) Edge
- *      4) Building
- *      5) Road
- * 
- */
-
-/**
- * 
- * Denzel
- * Fatihun
+ * Sets up the Catan board layout (tiles, nodes, edges) and keeps track of what
+ * buildings and roads have been placed during the game.
+ *
+ * This class also defines a few small nested types used by the board:
+ * TerrainTile, Node, Edge, Building, Road.
+ *
+ * @author Team 28
  */
 
 
 public class Board {
 
-    // finals
+    /** The number of tiles on a standard Catan board. */
     public static final int TILE_COUNT = 19;
+
+    /** number of intersection points (corners) on the board. */
     public static final int NODE_COUNT = 54;
+
+    /** The number of unique edges. */
     public static final int EDGE_COUNT = 72;
 
     // initial board state
@@ -38,6 +34,13 @@ public class Board {
     private Road[] roads = new Road[EDGE_COUNT];
 
     private final List<Integer>[] nodeToEdgeIndices = (List<Integer>[]) new List[NODE_COUNT];
+
+    /**
+     * Hard-coded board setup.
+     * Each TerrainTile stores: tile id, resource type, dice token, and the 6 corner nodes.
+     * The corner nodes are in clockwise order so we can build edges cleanly.
+     */
+
     private static final TerrainTile[] terrainTilesSetup = new TerrainTile[] {
 
         new TerrainTile(0, ResourceType.LUMBER, 10, new int[] {0, 1, 2, 3, 4, 5}),
@@ -62,7 +65,11 @@ public class Board {
 
     };
 
-
+    /**
+     * Builds a fresh board.
+     * Creates empty state, creates nodes, loads tiles, then builds edges and
+     * neighbor relationships.
+     */
     public Board() {
 
         initEmptyState();
