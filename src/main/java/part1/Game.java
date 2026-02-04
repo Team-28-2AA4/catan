@@ -6,9 +6,15 @@ public class Game {
 
     private static final int TARGET_VICTORY_POINTS = 10;
     private static final int MAX_ROUNDS = 8192;
+    private static final int MAX_LUMBER_CARDS = 19;
+    private static final int MAX_BRICK_CARDS = 19;
+    private static final int MAX_WOOL_CARDS = 19;
+    private static final int MAX_GRAIN_CARDS = 19;
+    private static final int MAX_ORE_CARDS = 19;
 
     private final Board board;
     private final List<Player> players;
+    private final int[] resourceCardsInTheBank = new int[ResourceType.values().length];
 
     private int startingPlayerIndex;
     private int currentPlayerIndex;
@@ -24,6 +30,11 @@ public class Game {
 
         this.board = board;
         this.players = new ArrayList<>(players);
+
+        initBankCards();
+        for (int i = 0; i < this.players.size(); i++) {
+            this.players.get(i).setGame(this);
+        }
 
         this.startingPlayerIndex = 0;
         this.currentPlayerIndex = 0;
@@ -47,6 +58,15 @@ public class Game {
 
         playFirstTwoRoundsSetup();
         playMainGame();
+
+    }
+
+    private void initBankCards() {
+        resourceCardsInTheBank[ResourceType.LUMBER.ordinal()] = MAX_LUMBER_CARDS;
+        resourceCardsInTheBank[ResourceType.BRICK.ordinal()] = MAX_BRICK_CARDS;
+        resourceCardsInTheBank[ResourceType.WOOL.ordinal()] = MAX_WOOL_CARDS;
+        resourceCardsInTheBank[ResourceType.GRAIN.ordinal()] = MAX_GRAIN_CARDS;
+        resourceCardsInTheBank[ResourceType.ORE.ordinal()] = MAX_ORE_CARDS;
 
     }
 
@@ -179,7 +199,38 @@ public class Game {
 
 
 
+    private int takeFromBank(Player player, ResourceType type, int requestedAmount) {
+        if (type == null) {
+            return 0;
+        }
 
+        int index = type.ordinal();
+        int available = resourceCardsInTheBank[index];
+
+        int actualAmount;
+        if (available <= 0) {
+            actualAmount = 0;
+        } else if (requestedAmount <= available) {
+            actualAmount = requestedAmount;
+        } else {
+            actualAmount = available;
+        }
+
+        resourceCardsInTheBank[index] -= actualAmount;
+        player.addResource(type, actualAmount);
+
+        return actualAmount;
+    }
+
+    public void returnToBank(ResourceType type, int amount) {
+
+        if (type == null) {
+            return;
+        }
+        if (amount <= 0) {
+            return;
+        }
+    }
 
     public String awardResourcesForAllPlayers(int roll, int currentPlayerId) {
 
@@ -223,23 +274,27 @@ public class Game {
                 if (owner == null) {
                     continue;
                 }
-                owner.addResource(tile.resourceType, amount);
+
+                int actual = takeFromBank(owner, tile.resourceType, amount);
+                if (actual == 0) {
+                    continue;
+                }
 
                 if (building.ownerPlayerId == currentPlayerId) {
                     if (tile.resourceType == ResourceType.LUMBER) {
-                        lumberGained += amount;
+                        lumberGained += actual;
                     }
                     if (tile.resourceType == ResourceType.BRICK) {
-                        brickGained += amount;
+                        brickGained += actual;
                     }
                     if (tile.resourceType == ResourceType.WOOL) {
-                        woolGained += amount;
+                        woolGained += actual;
                     }
                     if (tile.resourceType == ResourceType.GRAIN) {
-                        grainGained += amount;
+                        grainGained += actual;
                     }
                     if (tile.resourceType == ResourceType.ORE) {
-                        oreGained += amount;
+                        oreGained += actual;
                     }
                 }
                 
@@ -348,7 +403,7 @@ public class Game {
                 continue;
             }
 
-            p.addResource(tile.resourceType, 1);
+            takeFromBank(tile.resourceType, 1);
         }
 
         displayTurnSummary(2, p.getPlayerId(), "Gained starting resources from 2nd settlement at node " + settlementNodeId);
@@ -359,14 +414,14 @@ public class Game {
 
         System.out.println("[" + roundNumber + "] / [" + playerId + "]: " + action);
 
-        /*
+        
         try { 
             Thread.sleep(500);
         } 
 
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }*/
+        }
 
     }
 
