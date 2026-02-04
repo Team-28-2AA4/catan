@@ -31,11 +31,6 @@ public class Game {
         this.board = board;
         this.players = new ArrayList<>(players);
 
-        initBankCards();
-        for (int i = 0; i < this.players.size(); i++) {
-            this.players.get(i).setGame(this);
-        }
-
         this.startingPlayerIndex = 0;
         this.currentPlayerIndex = 0;
         this.rounds = 0;
@@ -53,12 +48,11 @@ public class Game {
 
 
     public void startGame() {
-
+        initBankCards();
         determineStartingPlayer();
 
         playFirstTwoRoundsSetup();
         playMainGame();
-
     }
 
     private void initBankCards() {
@@ -147,12 +141,13 @@ public class Game {
                 currentPlayerIndex = getPlayerIndexClockwise(startingPlayerIndex, step);
                 Player p = players.get(currentPlayerIndex);
 
-
                 int roll = p.diceRoll();
                 String resourceCollectionSummary = awardResourcesForAllPlayers(roll, p.getPlayerId());
 
-                String action = p.turn(board);
-                String finalTurnSummary = resourceCollectionSummary + action;
+                Player.TurnResult decision = p.turn(board);
+                String actionSummary = applyTurnResult(p, decision);
+                String finalTurnSummary = resourceCollectionSummary + actionSummary;
+
                 displayTurnSummary(rounds, p.getPlayerId(), finalTurnSummary);
                 checkWinner();
 
@@ -197,7 +192,100 @@ public class Game {
 
 
 
+    private String applyTurnResult(Player p, Player.TurnResult tr) {
+        if (tr == null) {
+            return "No action";
+        }
+        if (tr.actionType == ActionType.PASS) {
+            if (tr.decisionSummary != null && tr.decisionSummary.length() > 0) {
+                return tr.decisionSummary;
+            }
+            return "Passed.";
+        }
 
+
+        // Build Road
+        if (tr.actionType == ActionType.BUILD_ROAD) {
+            if (!p.canAffordRoad()) {
+                return "Tried to build ROAD but cannot afford it.";
+            }
+            if (!board.isRoadEmpty(tr.edgeIndex)) {
+                return "Tried to build ROAD but edge is occupied.";
+            }
+
+            p.spendResource(ResourceType.LUMBER, 1);
+            p.spendResource(ResourceType.BRICK, 1);
+            p.spendRoads(1);
+
+            returnToBank(ResourceType.LUMBER, 1);
+            returnToBank(ResourceType.BRICK, 1);
+
+            board.placeRoad(tr.edgeIndex, p.getPlayerId());
+
+            return "Built ROAD at edge " + tr.edgeIndex + ".";
+        }
+
+
+        // Settlement
+        if (tr.actionType == ActionType.BUILD_SETTLEMENT) {
+            if (!p.canAffordSettlement()) {
+                return "Tried to build SETTLEMENT but cannot afford it.";
+            }
+            if (!board.isNodeEmpty(tr.nodeId)) {
+                return "Tried to build SETTLEMENT but node is occupied.";
+            }
+            if (board.violatesDistanceRule(tr.nodeId)) {
+                return "Tried to build SETTLEMENT but distance rule is violated.";
+            }
+
+            p.spendResource(ResourceType.LUMBER, 1);
+            p.spendResource(ResourceType.BRICK, 1);
+            p.spendResource(ResourceType.WOOL, 1);
+            p.spendResource(ResourceType.GRAIN, 1);
+            p.spendBuilding(BuildingKind.SETTLEMENT, 1);
+
+            returnToBank(ResourceType.LUMBER, 1);
+            returnToBank(ResourceType.BRICK, 1);
+            returnToBank(ResourceType.WOOL, 1);
+            returnToBank(ResourceType.GRAIN, 1);
+
+            board.placeSettlement(tr.nodeId, p);
+
+            return "Built SETTLEMENT at node " + tr.nodeId + ".";
+        }
+
+
+        // City
+        if (tr.actionType == ActionType.BUILD_CITY) {
+            if (!p.canAffordCity()) {
+                return "Tried to build CITY but cannot afford it.";
+            }
+            Board.Building b = board.getBuilding(tr.nodeId);
+            if (b == null) {
+                return "Tried to build CITY but there is no building there.";
+            }
+            if (b.ownerPlayerId != p.getPlayerId()) {
+                return "Tried to build CITY but you dont own that SETTLEMENT.";
+            }
+            if (b.kind != BuildingKind.SETTLEMENT) {
+                return "Tried to build CITY but it is not a settlement.";
+            }
+
+            p.spendResource(ResourceType.GRAIN, 2);
+            p.spendResource(ResourceType.ORE, 3);
+            p.spendBuilding(BuildingKind.CITY, 1);
+
+            returnToBank(ResourceType.GRAIN, 2);
+            returnToBank(ResourceType.ORE, 3);
+
+            board.placeCity(tr.nodeId, p);
+
+            return "Built CITY at node " + tr.nodeId + ".";
+        }
+
+        return "";
+
+    }
 
     private int takeFromBank(Player player, ResourceType type, int requestedAmount) {
         if (type == null) {
@@ -229,6 +317,30 @@ public class Game {
         }
         if (amount <= 0) {
             return;
+        }
+
+        int index = type.ordinal();
+        resourceCardsInTheBank[index] += amount;
+
+        int max;
+        if (type == ResourceType.LUMBER) {
+            max = MAX_LUMBER_CARDS;
+        } 
+        else if (type == ResourceType.BRICK) {
+            max = MAX_BRICK_CARDS;
+        } 
+        else if (type == ResourceType.WOOL) {
+            max = MAX_WOOL_CARDS;
+        } 
+        else if (type == ResourceType.GRAIN) {
+            max = MAX_GRAIN_CARDS;
+        } 
+        else {
+            max = MAX_ORE_CARDS;
+        } 
+
+        if (resourceCardsInTheBank[index] > max) {
+            throw new IllegalStateException("Bank has too many " + type + " cards: " + resourceCardsInTheBank[index]);
         }
     }
 
@@ -403,7 +515,7 @@ public class Game {
                 continue;
             }
 
-            takeFromBank(tile.resourceType, 1);
+            takeFromBank(p, tile.resourceType, 1);
         }
 
         displayTurnSummary(2, p.getPlayerId(), "Gained starting resources from 2nd settlement at node " + settlementNodeId);
@@ -414,7 +526,7 @@ public class Game {
 
         System.out.println("[" + roundNumber + "] / [" + playerId + "]: " + action);
 
-        
+        /*
         try { 
             Thread.sleep(500);
         } 
@@ -422,7 +534,7 @@ public class Game {
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
+*/
     }
 
     private void displayRoundSummary() {
