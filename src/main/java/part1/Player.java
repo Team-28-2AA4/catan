@@ -37,7 +37,15 @@ public abstract class Player {
 
     }
 
-    public abstract String turn(Board board);
+    public abstract TurnResult turn(Board board);
+
+
+
+
+
+
+
+
 
     // helpers
 
@@ -293,4 +301,40 @@ public abstract class Player {
         roadsCount -= amount;
     }
 
+
+
+
+
+    /** Nested Classes */
+    public static final class TurnResult {
+
+        public final ActionType actionType;
+        public final int edgeIndex;
+        public final int nodeId;
+        public final String decisionSummary;
+
+        private TurnResult(ActionType actionType, int edgeIndex, int nodeId, String decisionSummary) {
+            this.actionType = actionType;
+            this.edgeIndex = edgeIndex;
+            this.nodeId = nodeId;
+            this.decisionSummary = decisionSummary;
+        }
+
+        public static TurnResult pass(String summary) {
+            return new TurnResult(ActionType.PASS, -1, -1, summary);
+        }
+
+        public static TurnResult buildRoad(int edgeIndex, String summary) {
+            return new TurnResult(ActionType.BUILD_ROAD, edgeIndex, -1, summary);
+        }
+
+        public static TurnResult buildSettlement(int nodeId, String summary) {
+            return new TurnResult(ActionType.BUILD_SETTLEMENT, -1, nodeId, summary);
+        }
+
+        public static TurnResult buildCity(int nodeId, String summary) {
+            return new TurnResult(ActionType.BUILD_CITY, -1, nodeId, summary);
+        }        
+
+    }
 }
