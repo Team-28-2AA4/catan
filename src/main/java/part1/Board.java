@@ -31,8 +31,12 @@ public class Board {
 
     // dynamic infrastructure state
     private Building[] buildings = new Building[NODE_COUNT];
+
+     /** roads are currently placed on edges. */
     private Road[] roads = new Road[EDGE_COUNT];
 
+
+    /** For each node, stores the edge indices that touch it  */
     private final List<Integer>[] nodeToEdgeIndices = (List<Integer>[]) new List[NODE_COUNT];
 
     /**
@@ -81,7 +85,10 @@ public class Board {
 
     }
 
-    // Initialize Board helpers
+    /**
+     * Clears placed buildings/roads and resets the edges list.
+     * Used when we are creating a new board state.
+     */
     private void initEmptyState() {
         for (int i = 0; i < NODE_COUNT; i++) {
             buildings[i] = null;
@@ -92,12 +99,17 @@ public class Board {
         edges.clear();
     }
 
+    /**
+     * Creates Node objects for ids 0 to 53.
+     */
     private void initNodes0to53() {
         for (int nodeId = 0; nodeId < NODE_COUNT; nodeId++) {
             nodes[nodeId] = new Node(nodeId);
         }
     }
-
+    /**
+     * Loads the TerrainTile objects from the static setup array into the tiles array.
+     */
     private void initTilesFromSetupArray() {
         for (int i = 0; i < terrainTilesSetup.length; i++) {
             TerrainTile t = terrainTilesSetup[i];
@@ -105,7 +117,10 @@ public class Board {
             tiles[tileId] = t;
         }
     }
-
+    /**
+     * For each tile, adds that tile id into the adjacentTileIds set of each corner node.
+     * This lets a node know which tiles touch it.
+     */
     private void populateNodeAdjacentTileIdsFromTiles() {
         for (int tileId = 0; tileId < TILE_COUNT; tileId++) {
             TerrainTile t = tiles[tileId];
@@ -121,7 +136,13 @@ public class Board {
             }
         }
     }
-
+    /**
+     * Builds all unique edges by walking around each tile perimeter.
+     * Uses a boolean matrix to avoid duplicate edges.
+     *
+     * After collecting all unique node pairs, the pairs are sorted so edge ids
+     * are consistent across runs.
+     */
     private void buildEdgesFromTilePerimetersAndAssignIds() {
 
         boolean[][] hasEdge = new boolean[NODE_COUNT][NODE_COUNT];
@@ -152,7 +173,7 @@ public class Board {
                 }
             }
         }
-
+        // Selection sort edge pairs so thats the edgeIndex assignment is predictable
         for (int i = 0; i < EDGE_COUNT - 1; i++) {
             int best = i;
 
@@ -183,6 +204,8 @@ public class Board {
 
         edges.clear();
 
+        // Create Edge objects and assign edgeIndex based on sorted order.
+
         for (int edgeIndex = 0; edgeIndex < EDGE_COUNT; edgeIndex++) {
             int node1 = edgePairs[edgeIndex][0];
             int node2 = edgePairs[edgeIndex][1];
@@ -192,7 +215,10 @@ public class Board {
         }
 
     }
-
+    /**
+     * Builds the neighbor list for each node based on the edge list.
+     * If two nodes share an edge, they are neighbors.
+     */
     private void populateNodeNeighbourNodeIdsFromEdges() {
 
         for (int nodeId = 0; nodeId < NODE_COUNT; nodeId++) {
@@ -239,9 +265,15 @@ public class Board {
 
 
 
-
-
     // Methods
+
+    /**
+     * Places a settlement on a node for a player.
+     * Checks the node is empty and the distance rule is not broken.
+     *
+     * @param nodeId node to place the settlement on
+     * @param owner player who owns the settlement
+     */
 
     public void placeSettlement(int nodeId, Player owner) {
 
@@ -258,7 +290,13 @@ public class Board {
         owner.addVictoryPoints(1);
     
     }
-
+     /**
+     * Upgrades a settlement to a city at the given node.
+     * The node must already have the owner's settlement.
+     *
+     * @param nodeId node to upgrade
+     * @param owner player who is upgrading
+     */
     public void placeCity(int nodeId, Player owner) {
 
         int ownerPlayerId = owner.getPlayerId();
@@ -277,7 +315,12 @@ public class Board {
         buildings[nodeId] = new Building(ownerPlayerId, nodeId, BuildingKind.CITY);
         owner.addVictoryPoints(1);
     }
-
+    /**
+     * Places a road on an edge index for a player.
+     *
+     * @param edgeIndex which edge to place on
+     * @param ownerPlayerId id of the owner player
+     */
     public void placeRoad(int edgeIndex, int ownerPlayerId) {
 
         if (edgeIndex < 0 || edgeIndex >= EDGE_COUNT){
@@ -290,7 +333,13 @@ public class Board {
         roads[edgeIndex] = new Road(ownerPlayerId, edgeIndex);
     
     }
-
+    /**
+     * Checks the distance rule for settlements/cities.
+     * Returns true if any neighbor node already has a building.
+     *
+     * @param nodeId node being checked
+     * @return true if the rule is violated, false otherwise
+     */
     public boolean violatesDistanceRule(int nodeId) {
         
         Node n = nodes[nodeId];
@@ -317,7 +366,12 @@ public class Board {
 
         return false;
     }
-
+    /**
+     * Returns the edge indices that touch a given node.
+     *
+     * @param nodeId node to check
+     * @return list of edge indices connected to that node
+     */
     public List<Integer> getAdjacentEdgeIndicesForNode(int nodeId){
 
         List<Integer> result = new ArrayList<Integer>();
@@ -339,7 +393,13 @@ public class Board {
         return result;
     }
 
-
+    /**
+     * Finds all resource types that match a dice token.
+     * An example could be that a token 8 might return multiple tiles, so multiple types.)
+     *
+     * @param diceToken dice number rolled
+     * @return list of resource types for tiles with that token
+     */
     public List<ResourceType> getResourceTypesForDiceToken(int diceToken) {
 
         List<ResourceType> resourceTypes = new ArrayList<>();
@@ -366,24 +426,67 @@ public class Board {
 
 
     // Getters
+
+    /**
+     * Gets the tile by tile id.
+     *
+     * @param tileId tile id
+     * @return tile object
+     */
     public TerrainTile getTile(int tileId) {
         return tiles[tileId];
     }
+    /**
+     * Gets the node by node id.
+     *
+     * @param nodeId node id
+     * @return node object
+     */
     public Node getNode(int nodeId) {
         return nodes[nodeId];
     }
+    /**
+     * Gets the building at a node (null if empty).
+     *
+     * @param nodeId node id
+     * @return building or null
+     */
     public Building getBuilding(int nodeId){
         return buildings[nodeId];
     }
+    /**
+     * Gets the road at an edge (null if empty).
+     *
+     * @param edgeIndex edge index
+     * @return road or null
+     */
     public Road getRoad(int edgeIndex) {
         return roads[edgeIndex];
     }
+    /**
+     * Gets the edge object at an index.
+     *
+     * @param edgeIndex edge index
+     * @return edge object
+     */
     public Edge getEdge(int edgeIndex) {
         return edges.get(edgeIndex);
     }
+    /**
+     * Checks if an edge has no road.
+     *
+     * @param edgeIndex edge index
+     * @return true if empty, false otherwise
+     */
     public boolean isRoadEmpty(int edgeIndex) {
         return roads[edgeIndex] == null;
     }
+    /**
+     * Checks if a node has no building.
+     *
+     * @param nodeId node id
+     * @return true if empty, false otherwise
+     */
     public boolean isNodeEmpty(int nodeId) {
         return buildings[nodeId] == null;
     }
@@ -409,6 +512,12 @@ public class Board {
 
 
     // Nested Types
+    /**
+     * TerrainTile
+     * Stores one hex tile's info: id, resource type, dice token, and its 6 corner nodes.
+     *
+     * @author Team 28
+     */
 
     public static final class TerrainTile {
 
@@ -428,7 +537,11 @@ public class Board {
         }
     }
 
-
+/**
+     * Node
+     * Represents a board corner where a settlement/city can be placed.
+     *
+     */
     public static final class Node {
 
         public final int nodeId;
@@ -440,7 +553,11 @@ public class Board {
         }
     }
 
-
+/**
+     * Edge
+     * Represents one road location between two nodes.
+     *
+     */
     public static final class Edge {
         
         public final int node1;
@@ -454,7 +571,11 @@ public class Board {
         }
     }
 
-
+/**
+     * Building
+     * This just store the info for a settlement or city placed on a node.
+     *
+     */
     public static final class Building {
     
         public final int ownerPlayerId;
@@ -469,7 +590,10 @@ public class Board {
 
     }
 
-
+/**
+     * Road
+     * This stores the info for a road placed on an edge.
+     */
     public static final class Road {
 
         public final int ownerPlayerId;
