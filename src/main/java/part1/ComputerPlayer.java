@@ -3,6 +3,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * ComputerPlayer
+ * A Player that makes random choices.
+ * It rolls the dicethen collects resources, then randomly builds a road/settlement/city
+ * if it can and if there are valid spots.
+ *
+ * @author Team 28
+ */
+
 public class ComputerPlayer extends Player {
 
     private final Random r = new Random();
@@ -17,7 +26,13 @@ public class ComputerPlayer extends Player {
 
 
 
-
+/**
+     * Runs one turn for the computer player.
+     * Roll dice then collects resources, then try to build one thing (random).
+     *
+     * @param board game board
+     * @return a text summary of what happened this turn
+     */
     @Override
     public Player.TurnResult turn(Board board){
 
@@ -99,6 +114,14 @@ public class ComputerPlayer extends Player {
 
 
     // Helpers
+    /**
+     * Places a settlement at a random valid node.
+     * It tries many random nodes until it finds one that works.
+     *
+     * @param board game board
+     * @param isSecondSettlement true if this is the second starting settlement (not used here)
+     * @return the node id where it placed the settlement
+     */
     public int placeRandomValidSettlement(Board board, boolean isSecondSettlement) {
 
         int maxAttempts = 10000;
@@ -122,7 +145,14 @@ public class ComputerPlayer extends Player {
         throw new IllegalStateException("Nowhere to place a valid settlement");
 
     }
-
+/**
+     * Places a road next to a given settlement node.
+     * Picks a random adjacent edge that is empty.
+     *
+     * @param board game board
+     * @param settlementNodeId node id of the settlement
+     * @return the edge index where it placed the road
+     */
     public int placeRandomValidRoad(Board board, int settlementNodeId) {
 
         List<Integer> adjacentEdgeIndices = board.getAdjacentEdgeIndicesForNode(settlementNodeId);
