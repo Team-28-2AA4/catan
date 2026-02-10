@@ -4,7 +4,15 @@ import java.util.Random;
 import java.util.ArrayList;
 import java.util.List;
 
-// test comment
+/**
+ * Player
+ * Base class for any player (computer or human).
+ * Stores resources, pieces left to build, and basic helper methods.
+ *
+ * Subclasses implement turn() to choose what to do.
+ *
+ * @author Team 28
+ */
 public abstract class Player {
 
     private final int playerId;
@@ -36,7 +44,13 @@ public abstract class Player {
         this.r = new Random();
 
     }
-
+    /**
+     * Runs one turn decision for this player.
+     * Each subclass decides what to do and returns a TurnResult.
+     *
+     * @param board game board
+     * @return the chosen action for this turn
+     */
     public abstract TurnResult turn(Board board);
 
 
@@ -49,13 +63,25 @@ public abstract class Player {
 
     // helpers
 
+
+    /**
+     * Rolls 2 six-sided dice and returns the sum (2..12).
+     *
+     * @return dice sum
+     */
+
     public int diceRoll() {
         int die1 = r.nextInt(6) + 1;
         int die2 = r.nextInt(6) + 1;
         return die1 + die2;
     }
 
-    // Resources
+    /**
+     * Builds a road by spending resources and a road piece, then placing it on the board.
+     *
+     * @param board game board
+     * @param edgeIndex edge index where the road goes
+     */
     public void buildRoad(Board board, int edgeIndex) {
         spendResource(ResourceType.LUMBER, 1);
         spendResource(ResourceType.BRICK, 1);
@@ -64,6 +90,12 @@ public abstract class Player {
 
         board.placeRoad(edgeIndex, getPlayerId());
     }
+    /**
+     * Builds a settlement by spending resources and a settlement piece, then placing it on the board.
+     *
+     * @param board game board
+     * @param nodeId node id where the settlement goes
+     */
 
     public void buildSettlement(Board board, int nodeId) {
         spendResource(ResourceType.LUMBER, 1);
@@ -75,7 +107,12 @@ public abstract class Player {
 
         board.placeSettlement(nodeId, this);
     }
-
+    /**
+     * Builds a city by spending resources and a city piece, then upgrading on the board.
+     *
+     * @param board game board
+     * @param nodeId node id where the city upgrade happens
+     */
     public void buildCity(Board board, int nodeId) {
         spendResource(ResourceType.GRAIN, 2);
         spendResource(ResourceType.ORE, 3);
@@ -85,6 +122,11 @@ public abstract class Player {
         board.placeCity(nodeId, this);
     }
 
+    /**
+     * Checks if the player has enough resources + road pieces to build a road.
+     *
+     * @return true if affordable
+     */
     public boolean canAffordRoad() {
         boolean enoughResources = hasAtLeastXResources(ResourceType.LUMBER, 1)
                 && hasAtLeastXResources(ResourceType.BRICK, 1);
@@ -93,6 +135,11 @@ public abstract class Player {
         return affordable;
     }
 
+    /**
+     * Checks if the player has enough resources + settlement pieces to build a settlement.
+     *
+     * @return true if affordable
+     */
     public boolean canAffordSettlement() {
         boolean enoughResources = hasAtLeastXResources(ResourceType.LUMBER, 1)
                 && hasAtLeastXResources(ResourceType.BRICK, 1) && hasAtLeastXResources(ResourceType.WOOL, 1)
@@ -110,7 +157,14 @@ public abstract class Player {
         return affordable;
     }
 
-    // Get Valid Infrastructure
+    
+    /**
+     * Finds all edges where this player can place a road.
+     * Edge must be empty and connected to this player's network.
+     *
+     * @param board game board
+     * @return list of edge indices
+     */
     public List<Integer> findValidRoadPlacements(Board board) {
         List<Integer> result = new ArrayList<Integer>();
 
@@ -126,7 +180,13 @@ public abstract class Player {
 
         return result;
     }
-
+    /**
+     * Finds all nodes where this player can place a settlement.
+     * Node must be empty, pass distance rule, and touch this player's road.
+     *
+     * @param board game board
+     * @return list of node ids
+     */
     public List<Integer> findValidSettlementPlacements(Board board) {
         List<Integer> result = new ArrayList<Integer>();
 

@@ -2,9 +2,23 @@ package part1;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Game
+ * Runs the game loop and keeps the main game state:
+ * - bank resource cards
+ * - turn order and rounds
+ * - setup rounds (first 2 rounds)
+ * - normal rounds until someone wins or we hit max rounds
+ *
+ * @author Team 28
+ */
+
 public class Game {
 
+    /** Points needed to win. */
     private static final int TARGET_VICTORY_POINTS = 10;
+
+    /** Basically a hard stop so the simulation does not run forever. */
     private static final int MAX_ROUNDS = 8192;
     private static final int MAX_LUMBER_CARDS = 19;
     private static final int MAX_BRICK_CARDS = 19;
@@ -25,7 +39,12 @@ public class Game {
 
     private Player longestRoadHolder;
 
-
+ /**
+     * Creates a game using a board and a list of players.
+     *
+     * @param board game board
+     * @param players players in turn order list
+     */
     public Game(Board board, List<Player> players) {
 
         this.board = board;
@@ -46,7 +65,11 @@ public class Game {
 
 
 
-
+/**
+     * Starts the whole simulation.
+     * Sets up bank + starting player, does the first 2 setup rounds,
+     * then runs the main game until it ends.
+     */
     public void startGame() {
         initBankCards();
         determineStartingPlayer();
@@ -54,7 +77,9 @@ public class Game {
         playFirstTwoRoundsSetup();
         playMainGame();
     }
-
+    /**
+     * Fills the bank with the starting number of resource cards.
+     */
     private void initBankCards() {
         resourceCardsInTheBank[ResourceType.LUMBER.ordinal()] = MAX_LUMBER_CARDS;
         resourceCardsInTheBank[ResourceType.BRICK.ordinal()] = MAX_BRICK_CARDS;
@@ -64,6 +89,10 @@ public class Game {
 
     }
 
+    /**
+     * Picks the starting player by rolling dice.
+     * If there is a tie for highest roll, it re-rolls until there is no tie.
+     */
     private void determineStartingPlayer() {
 
         int bestRoll = -1;
@@ -99,7 +128,11 @@ public class Game {
         currentPlayerIndex = startingPlayerIndex;
 
     }
-
+    /**
+     * Plays the first 2 setup rounds:
+     * - Round 1 clockwise placement of settlement + road
+     * - Round 2 counter-clockwise placement of settlement + road + starting resources
+     */
     private void playFirstTwoRoundsSetup() {
 
         // Round 1
@@ -128,10 +161,16 @@ public class Game {
         
         rounds = 2;
         displayRoundSummary();
+
+        // After setup, start normal turns from the starting player.
         currentPlayerIndex = startingPlayerIndex;
         
 
     }
+
+    /**
+     * Runs the normal game loop until someone wins or max rounds is reached.
+     */
 
     private void playMainGame() {
 
@@ -141,9 +180,10 @@ public class Game {
                 currentPlayerIndex = getPlayerIndexClockwise(startingPlayerIndex, step);
                 Player p = players.get(currentPlayerIndex);
 
+            // Roll the dice and award resources to everyone.
                 int roll = p.diceRoll();
                 String resourceCollectionSummary = awardResourcesForAllPlayers(roll, p.getPlayerId());
-
+             // Let the player decide what to do, then apply it.
                 Player.TurnResult decision = p.turn(board);
                 String actionSummary = applyTurnResult(p, decision);
                 String finalTurnSummary = resourceCollectionSummary + actionSummary;
@@ -167,6 +207,10 @@ public class Game {
         }
     }
 
+    /**
+     * Checks if any player has reached the target victory points.
+     * If yes, sets winner state and prints the end message.
+     */
     private void checkWinner() {
 
         for (int i = 0; i < players.size(); i++) {
@@ -189,7 +233,14 @@ public class Game {
 
 
 
-
+    /**
+     * Applies one turn decision from a player.
+     * Handles PASS, BUILD_ROAD, BUILD_SETTLEMENT, BUILD_CITY.
+     *
+     * @param p player taking the action
+     * @param tr decision result from the player
+     * @return summary string of what happened
+     */
 
 
     private String applyTurnResult(Player p, Player.TurnResult tr) {
@@ -226,7 +277,7 @@ public class Game {
         }
 
 
-        // Settlement
+        // Build Settlement
         if (tr.actionType == ActionType.BUILD_SETTLEMENT) {
             if (!p.canAffordSettlement()) {
                 return "Tried to build SETTLEMENT but cannot afford it.";
@@ -255,7 +306,7 @@ public class Game {
         }
 
 
-        // City
+        // Build the City
         if (tr.actionType == ActionType.BUILD_CITY) {
             if (!p.canAffordCity()) {
                 return "Tried to build CITY but cannot afford it.";
@@ -286,7 +337,15 @@ public class Game {
         return "";
 
     }
-
+    /**
+     * Takes up to requestedAmount cards of a resource from the bank.
+     * If the bank has less, it gives only what is available.
+     *
+     * @param player player receiving cards
+     * @param type resource type
+     * @param requestedAmount how many cards the player should get
+     * @return how many cards were actually given
+     */
     private int takeFromBank(Player player, ResourceType type, int requestedAmount) {
         if (type == null) {
             return 0;
@@ -309,6 +368,14 @@ public class Game {
 
         return actualAmount;
     }
+
+    /**
+     * Returns resource cards back into the bank.
+     * Also checks that the bank does not go above the max deck size.
+     *
+     * @param type resource type
+     * @param amount amount to return
+     */
 
     public void returnToBank(ResourceType type, int amount) {
 
@@ -343,6 +410,16 @@ public class Game {
             throw new IllegalStateException("Bank has too many " + type + " cards: " + resourceCardsInTheBank[index]);
         }
     }
+    /**
+     * Awards resources to every player based on a dice roll.
+     * This method pulls cards from the bank, so players may get less if the bank is low.
+     *
+     * The returned string is a summary for the current player only.
+     *
+     * @param roll dice roll result
+     * @param currentPlayerId player id used for the summary
+     * @return summary string of what the current player gained
+     */
 
     public String awardResourcesForAllPlayers(int roll, int currentPlayerId) {
 
@@ -439,7 +516,12 @@ public class Game {
         return "Rolled " + roll + ", " + gained + ". ";
 
     }
-
+    /**
+     * Finds a Player object by player id.
+     *
+     * @param playerId player id
+     * @return player with that id, or null if not found
+     */
     private Player getPlayerById(int playerId) {
         for (int i = 0; i < players.size(); i++) {
             Player p = players.get(i);
@@ -450,6 +532,14 @@ public class Game {
         return null;
     }
 
+
+    /**
+     * Gets a player index by moving clockwise from a start index.
+     *
+     * @param startIndex where to start
+     * @param stepsForward how many steps forward
+     * @return resulting index
+     */
     private int getPlayerIndexClockwise(int startIndex, int stepsForward) {
 
         int playerCount = players.size();
@@ -458,7 +548,13 @@ public class Game {
         return indexAfterRotating;
 
     }
-
+    /**
+     * Gets a player index by moving counter-clockwise from a start index.
+     *
+     * @param startIndex where to start
+     * @param stepsBackward how many steps backward
+     * @return resulting index
+     */
     private int getPlayerIndexCounterClockwise(int startIndex, int stepsBackward) {
 
         int playerCount = players.size();
@@ -477,8 +573,15 @@ public class Game {
      * Instead of using instanceof,
      * Use abstract methods in player class to handle human and computer
      */
+    /**
+     * Places the starting settlement and starting road for a player.
+     *
+     * @param p player placing pieces
+     * @param roundNumber 1 or 2 (setup round)
+     * @return node id of the placed settlement, or -1 if not placed
+     */
     private int placeInitialSettlementAndRoad(Player p, int roundNumber) {
-
+           // Only ComputerPlayer is supported here.
         if (p instanceof ComputerPlayer) {
 
             ComputerPlayer cp = (ComputerPlayer) p;
@@ -496,7 +599,13 @@ public class Game {
         return -1;
 
     }
-
+    /**
+     * After the second setup settlement, the player gains 1 resource from each
+     * adjacent non-desert tile.
+     *
+     * @param p player receiving resources
+     * @param settlementNodeId node id of the second settlement
+     */
     private void addStartingResourcesFromSecondSettlement(Player p, int settlementNodeId) {
 
         Board.Node node = board.getNode(settlementNodeId);
@@ -522,19 +631,20 @@ public class Game {
 
     }
 
+    /**
+     * Prints one turn line to the console.
+     *
+     * @param roundNumber round number
+     * @param playerId player id
+     * @param action message to print
+     */
     private void displayTurnSummary(int roundNumber, int playerId, String action) {
 
         System.out.println("[" + roundNumber + "] / [" + playerId + "]: " + action);
 
-        /*
-        try { 
-            Thread.sleep(500);
-        } 
-
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-*/
+    /**
+     * Prints a round summary for all players (resources, longest road streak, points).
+     */
     }
 
     private void displayRoundSummary() {
@@ -565,15 +675,7 @@ public class Game {
         summary.append("---------------------------------------------------------------------------------\n\n");
         System.out.print(summary.toString());
 
-/*
-        try { 
-            Thread.sleep(500);
-        } 
 
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-*/
     }
 
 
