@@ -1,0 +1,14 @@
+part1/Player.class
+part1/Board$Road.class
+part1/Demonstrator.class
+part1/Board$Building.class
+part1/Board.class
+part1/ResourceType.class
+part1/Player$TurnResult.class
+part1/Board$TerrainTile.class
+part1/Game.class
+part1/ComputerPlayer.class
+part1/Board$Edge.class
+part1/ActionType.class
+part1/Board$Node.class
+part1/BuildingKind.class
