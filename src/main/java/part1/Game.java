@@ -281,6 +281,7 @@ public class Game {
             returnToBank(ResourceType.BRICK, 1);
 
             board.placeRoad(tr.edgeIndex, p.getPlayerId());
+            updateLongestRoadHolder();
 
             return "Built ROAD at edge " + tr.edgeIndex + ".";
         }
