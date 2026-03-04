@@ -51,7 +51,7 @@ public abstract class Player {
      * @param board game board
      * @return the chosen action for this turn
      */
-    public abstract TurnResult turn(Board board);
+    public abstract TurnResult turn(Board board, Game game);
 
     /**
      * Places the initial settlement and road during setup rounds.
@@ -384,29 +384,46 @@ public abstract class Player {
         public final int edgeIndex;
         public final int nodeId;
         public final String decisionSummary;
+        public final ResourceType resourceToGive;
+        public final ResourceType resourceToGet;
 
-        private TurnResult(ActionType actionType, int edgeIndex, int nodeId, String decisionSummary) {
+        private TurnResult(ActionType actionType, int edgeIndex, int nodeId, String decisionSummary, ResourceType resourceToGive, ResourceType resourceToGet) {
             this.actionType = actionType;
             this.edgeIndex = edgeIndex;
             this.nodeId = nodeId;
             this.decisionSummary = decisionSummary;
+            this.resourceToGive = resourceToGive;
+            this.resourceToGet = resourceToGet;
         }
 
         public static TurnResult pass(String summary) {
-            return new TurnResult(ActionType.PASS, -1, -1, summary);
+            return new TurnResult(ActionType.PASS, -1, -1, summary, null, null);
         }
 
         public static TurnResult buildRoad(int edgeIndex, String summary) {
-            return new TurnResult(ActionType.BUILD_ROAD, edgeIndex, -1, summary);
+            return new TurnResult(ActionType.BUILD_ROAD, edgeIndex, -1, summary, null, null);
         }
 
         public static TurnResult buildSettlement(int nodeId, String summary) {
-            return new TurnResult(ActionType.BUILD_SETTLEMENT, -1, nodeId, summary);
+            return new TurnResult(ActionType.BUILD_SETTLEMENT, -1, nodeId, summary, null, null);
         }
 
         public static TurnResult buildCity(int nodeId, String summary) {
-            return new TurnResult(ActionType.BUILD_CITY, -1, nodeId, summary);
-        }        
+            return new TurnResult(ActionType.BUILD_CITY, -1, nodeId, summary, null, null);
+        }
+
+        /**
+         * Creates a maritime trade result — player gives 4 of one resource to the bank
+         * and receives 1 of another resource in return.
+         *
+         * @param give resource the player gives to the bank (4 cards)
+         * @param get resource the player receives from the bank (1 card)
+         * @param summary description of the trade
+         * @return TurnResult representing a maritime trade action
+         */
+        public static TurnResult maritimeTrade(ResourceType give, ResourceType get, String summary) {
+            return new TurnResult(ActionType.MARITIME_TRADE, -1, -1, summary, give, get);
+        }
 
     }
 }

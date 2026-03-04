@@ -19,6 +19,7 @@ public class CommandParser
     private static final Pattern BUILD_SETTLEMENT_PATTERN = Pattern.compile("^\\s*build\\s+settlement\\s+(\\d+)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern BUILD_CITY_PATTERN = Pattern.compile("^\\s*build\\s+city\\s+(\\d+)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern BUILD_ROAD_PATTERN = Pattern.compile("^\\s*build\\s+road\\s+(\\d+)\\s*,\\s*(\\d+)\\s*$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MARITIME_TRADE_PATTERN = Pattern.compile("^\\s*trade\\s+(\\w+)\\s+(\\w+)\\s*$", Pattern.CASE_INSENSITIVE);
 
     /**
      * Parses a human input command string and returns the corresponding TurnResult.
@@ -92,7 +93,42 @@ public class CommandParser
             return Player.TurnResult.buildRoad(edgeIndex, "Build road between nodes " + node1 + " and " + node2);
         }
 
+        // Check Maritime Trade command  (Trade LUMBER BRICK)
+        Matcher maritimeTradeMatcher = MARITIME_TRADE_PATTERN.matcher(trimmedInput);
+        if (maritimeTradeMatcher.matches())
+        {
+            ResourceType resourceToGive = parseResourceType(maritimeTradeMatcher.group(1));
+            ResourceType resourceToGet = parseResourceType(maritimeTradeMatcher.group(2));
+
+            if (resourceToGive == null || resourceToGet == null)
+            {
+                return null;
+            }
+
+            String tradeSummary = "Trade " + resourceToGive + " for " + resourceToGet;
+            return Player.TurnResult.maritimeTrade(resourceToGive, resourceToGet, tradeSummary);
+        }
+
         // No match found
+        return null;
+    }
+
+    /**
+     * Attempts to parse a resource name string into a ResourceType.
+     * Returns null if the name does not match any known resource.
+     *
+     * @param name resource name from user input
+     * @return matching ResourceType or null
+     */
+    private static ResourceType parseResourceType(String name)
+    {
+        for (ResourceType type : ResourceType.values())
+        {
+            if (type.name().equalsIgnoreCase(name))
+            {
+                return type;
+            }
+        }
         return null;
     }
 

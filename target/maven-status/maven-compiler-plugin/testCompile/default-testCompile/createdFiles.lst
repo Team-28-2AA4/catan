@@ -1,5 +1,6 @@
 part1/PlayerDiceTest.class
 part1/PlayerResourceTest.class
 part1/BoardPlacementTest.class
+part1/CommandParserTest.class
 part1/ConfigLoaderTest.class
 part1/GameBankTest.class

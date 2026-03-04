@@ -34,7 +34,35 @@ public class ComputerPlayer extends Player {
      * @return a text summary of what happened this turn
      */
     @Override
-    public Player.TurnResult turn(Board board){
+    public Player.TurnResult turn(Board board, Game game){
+
+    // 0) Maritime trade: if holding >= 4 of any resource, trade with the bank before making a move
+        for (int resourceIndex = 0; resourceIndex < ResourceType.values().length; resourceIndex++)
+        {
+            ResourceType giveResource = ResourceType.values()[resourceIndex];
+            if (!hasAtLeastXResources(giveResource, 4))
+            {
+                continue;
+            }
+
+            // Shuffle candidate receive resources to avoid always picking the same one
+            ResourceType[] allResourceTypes = ResourceType.values();
+            int[] shuffledIndices = buildShuffledIndicesExcluding(allResourceTypes.length, resourceIndex);
+
+            for (int candidateIndex = 0; candidateIndex < shuffledIndices.length; candidateIndex++)
+            {
+                ResourceType getResource = allResourceTypes[shuffledIndices[candidateIndex]];
+                if (game.canMaritiмeTrade(this, giveResource, getResource))
+                {
+                    return Player.TurnResult.maritimeTrade(
+                        giveResource,
+                        getResource,
+                        "Computer trades 4 " + giveResource + " for 1 " + getResource
+                    );
+                }
+            }
+            // No valid trade found for this resource — continue checking others
+        }
 
     // 1) Find all valid moves between...
         // --> Build road
@@ -114,6 +142,40 @@ public class ComputerPlayer extends Player {
 
 
     // Helpers
+    /**
+     * Builds a shuffled array of indices from 0..length-1, excluding one specific index.
+     * Used to randomly try different receive resources for maritime trading.
+     *
+     * @param length total number of resource types
+     * @param excludedIndex index to skip (the give resource)
+     * @return shuffled array of candidate receive resource indices
+     */
+    private int[] buildShuffledIndicesExcluding(int length, int excludedIndex)
+    {
+        int candidateCount = length - 1;
+        int[] indices = new int[candidateCount];
+        int insertPosition = 0;
+
+        for (int i = 0; i < length; i++)
+        {
+            if (i != excludedIndex)
+            {
+                indices[insertPosition] = i;
+                insertPosition++;
+            }
+        }
+
+        for (int swapTarget = candidateCount - 1; swapTarget > 0; swapTarget--)
+        {
+            int swapSource = r.nextInt(swapTarget + 1);
+            int temp = indices[swapTarget];
+            indices[swapTarget] = indices[swapSource];
+            indices[swapSource] = temp;
+        }
+
+        return indices;
+    }
+
     /**
      * Places the initial settlement and road during setup.
      * Picks a random valid node for the settlement, then a random free adjacent edge for the road.

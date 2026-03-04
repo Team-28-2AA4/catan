@@ -121,4 +121,23 @@ public class CommandParserTest
         Player.TurnResult result = CommandParser.parse("Build road 0, 50", boardForParsingTests);
         assertNull(result);
     }
+
+    // Test 11 --> Trade command with valid resource names parses to MARITIME_TRADE with correct give and get
+    @Test
+    void parseTradeCommandWithValidResourceNamesParsesToMaritimeTradeActionType()
+    {
+        Player.TurnResult maritimeTradeResult = CommandParser.parse("Trade LUMBER BRICK", boardForParsingTests);
+        assertNotNull(maritimeTradeResult);
+        assertEquals(ActionType.MARITIME_TRADE, maritimeTradeResult.actionType);
+        assertEquals(ResourceType.LUMBER, maritimeTradeResult.resourceToGive);
+        assertEquals(ResourceType.BRICK, maritimeTradeResult.resourceToGet);
+    }
+
+    // Test 12 --> Trade command with an invalid resource name returns null
+    @Test
+    void parseTradeCommandWithInvalidResourceNameReturnsNull()
+    {
+        Player.TurnResult invalidTradeResult = CommandParser.parse("Trade LUMBER INVALID", boardForParsingTests);
+        assertNull(invalidTradeResult);
+    }
 }

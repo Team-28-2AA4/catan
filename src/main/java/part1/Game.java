@@ -187,6 +187,8 @@ public class Game {
 
         while (!isWinner && rounds < maxRounds) {
 
+            rounds++;
+
             for (int step = 0; step < players.size(); step++){
                 currentPlayerIndex = getPlayerIndexClockwise(startingPlayerIndex, step);
                 Player p = players.get(currentPlayerIndex);
@@ -195,7 +197,7 @@ public class Game {
                 int roll = p.diceRoll();
                 String resourceCollectionSummary = awardResourcesForAllPlayers(roll, p.getPlayerId());
              // Let the player decide what to do, then apply it.
-                Player.TurnResult decision = p.turn(board);
+                Player.TurnResult decision = p.turn(board, this);
                 String actionSummary = applyTurnResult(p, decision);
                 String finalTurnSummary = resourceCollectionSummary + actionSummary;
 
@@ -210,7 +212,6 @@ public class Game {
 
             }
 
-            rounds++;
             displayRoundSummary();
 
         }
@@ -348,9 +349,80 @@ public class Game {
             return "Built CITY at node " + tr.nodeId + ".";
         }
 
+        // Maritime Trade
+        if (tr.actionType == ActionType.MARITIME_TRADE) {
+            return executeMaritiмeTrade(p, tr.resourceToGive, tr.resourceToGet);
+        }
+
         return "";
 
     }
+    /**
+     * Returns how many cards of the given resource type the bank currently holds.
+     *
+     * @param type resource type to query
+     * @return current bank count for that resource
+     */
+    public int getBankCount(ResourceType type)
+    {
+        if (type == null)
+        {
+            return 0;
+        }
+        return resourceCardsInTheBank[type.ordinal()];
+    }
+
+    /**
+     * Executes a 4:1 maritime trade between a player and the bank.
+     * The player gives 4 of one resource and receives 1 of another.
+     *
+     * @param player the player making the trade
+     * @param give the resource the player gives (4 cards)
+     * @param get the resource the player receives (1 card)
+     * @return summary string of what happened
+     */
+    private String executeMaritiмeTrade(Player player, ResourceType give, ResourceType get)
+    {
+        if (give == null || get == null)
+        {
+            return "Maritime trade failed: invalid resource type.";
+        }
+        if (!canMaritiмeTrade(player, give, get))
+        {
+            return "Maritime trade failed: player needs 4 " + give + " and bank needs at least 1 " + get + ".";
+        }
+
+        player.spendResource(give, 4);
+        returnToBank(give, 4);
+        takeFromBank(player, get, 1);
+
+        return "Maritime trade: gave 4 " + give + ", received 1 " + get + ".";
+    }
+
+    /**
+     * Checks whether a 4:1 maritime trade is currently valid.
+     * Player must have at least 4 of the give resource and the bank must have at least 1 of the get resource.
+     *
+     * @param player the player attempting the trade
+     * @param give the resource to give
+     * @param get the resource to receive
+     * @return true if the trade can proceed
+     */
+    public boolean canMaritiмeTrade(Player player, ResourceType give, ResourceType get)
+    {
+        if (give == null || get == null)
+        {
+            return false;
+        }
+        if (give == get)
+        {
+            return false;
+        }
+        boolean playerHasEnough = player.hasAtLeastXResources(give, 4);
+        boolean bankHasResource = resourceCardsInTheBank[get.ordinal()] >= 1;
+        return playerHasEnough && bankHasResource;
+    }
+
     /**
      * Takes up to requestedAmount cards of a resource from the bank.
      * If the bank has less, it gives only what is available.

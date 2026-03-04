@@ -12,5 +12,6 @@ public enum ActionType {
     PASS,
     BUILD_ROAD,
     BUILD_SETTLEMENT,
-    BUILD_CITY
+    BUILD_CITY,
+    MARITIME_TRADE
 }

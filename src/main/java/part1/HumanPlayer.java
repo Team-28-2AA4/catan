@@ -18,8 +18,10 @@ public class HumanPlayer extends Player
     }
 
     @Override
-    public TurnResult turn(Board board)
+    public TurnResult turn(Board board, Game game)
     {
+        System.out.println("--- Player " + getPlayerId() + "'s turn ---");
+        System.out.println("[Roll] [Go] [List] [Build [settlement [nodeId] | city [nodeId] | road [fromNodeId, toNodeId]]] [Trade [give] [get]]");
         while (true)
         {
             System.out.print("Player " + getPlayerId() + "> ");
@@ -29,7 +31,7 @@ public class HumanPlayer extends Player
 
             if (result == null)
             {
-                System.out.println("Unknown command. Try: Roll, Go, List, Build settlement [nodeId], Build city [nodeId], Build road [node1, node2]");
+                System.out.println("Unknown command. Try: Roll, Go, List, Build settlement [nodeId], Build city [nodeId], Build road [node1, node2], Trade [give] [get]");
                 continue;
             }
 
