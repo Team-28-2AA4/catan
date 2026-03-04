@@ -151,8 +151,8 @@ public class Game {
             int index = getPlayerIndexClockwise(startingPlayerIndex, step);
             Player p = players.get(index);
 
-            int settlementNodeId = p.placeInitialSettlementAndRoad(board, roundNumber);
-            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement and road at node " + settlementNodeId);
+            int settlementNodeId = p.placeInitialSettlementAndRoad(board, 1);
+            displayTurnSummary(1, p.getPlayerId(), "Placed settlement and road at node " + settlementNodeId);
 
             currentPlayerIndex = index;
         }
@@ -164,7 +164,7 @@ public class Game {
             int index = getPlayerIndexCounterClockwise(startingPlayerIndex, step);
             Player p = players.get(index);
 
-            int secondSettlementNodeId = placeInitialSettlementAndRoad(p, 2);
+            int secondSettlementNodeId = p.placeInitialSettlementAndRoad(board, 2);
             addStartingResourcesFromSecondSettlement(p, secondSettlementNodeId);
             
             currentPlayerIndex = index;
@@ -205,6 +205,8 @@ public class Game {
                 if (isWinner) {
                     break;
                 }
+
+                waitForGoCommand();
 
             }
 
@@ -660,11 +662,12 @@ public class Game {
 
         System.out.println("[" + roundNumber + "] / [" + playerId + "]: " + action);
 
+
+    }
+
     /**
      * Prints a round summary for all players (resources, longest road streak, points).
      */
-    }
-
     private void displayRoundSummary() {
 
         StringBuilder summary = new StringBuilder();
@@ -696,6 +699,24 @@ public class Game {
 
     }
 
+    /**
+     * Waits for the human player to type "Go" before continuing.
+     * Implements R2.4 - step forward functionality.
+     * Allows the human to watch each agent's turn before proceeding.
+     */
+    private void waitForGoCommand()
+    {
+        java.util.Scanner scanner = new java.util.Scanner(System.in);
+        while (true)
+        {
+            System.out.print("[Press Go to continue] ");
+            String input = scanner.nextLine().trim();
+            if (input.equalsIgnoreCase("Go"))
+            {
+                break;
+            }
+        }
+    }
 
     
 }

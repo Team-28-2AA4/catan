@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 
-mvn compile
-mvn package
+mvn clean package
 java -jar target/assignment01_Team_28-0.1.0.jar

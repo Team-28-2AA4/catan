@@ -32,12 +32,10 @@ public class Demonstrator {
 
         
     // Add 4 computer players (ids 0 to 3).
-        players.add(new ComputerPlayer(0));
-
-        players.add(new ComputerPlayer(1));
+        players.add(new HumanPlayer(0));
+        players.add(new HumanPlayer(1));
         players.add(new ComputerPlayer(2));
         players.add(new ComputerPlayer(3));
-        players.add(new ComputerPlayer(4));
 
         Game game = new Game(board, players, turns);
         game.startGame();
