@@ -151,7 +151,9 @@ public class Game {
             int index = getPlayerIndexClockwise(startingPlayerIndex, step);
             Player p = players.get(index);
 
-            placeInitialSettlementAndRoad(p, 1);
+            int settlementNodeId = p.placeInitialSettlementAndRoad(board, roundNumber);
+            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement and road at node " + settlementNodeId);
+
             currentPlayerIndex = index;
         }
         rounds = 1;
@@ -614,36 +616,7 @@ public class Game {
 
     }
 
-    /**
-     * Instead of using instanceof,
-     * Use abstract methods in player class to handle human and computer
-     */
-    /**
-     * Places the starting settlement and starting road for a player.
-     *
-     * @param p player placing pieces
-     * @param roundNumber 1 or 2 (setup round)
-     * @return node id of the placed settlement, or -1 if not placed
-     */
-    private int placeInitialSettlementAndRoad(Player p, int roundNumber) {
-           // Only ComputerPlayer is supported here.
-        if (p instanceof ComputerPlayer) {
 
-            ComputerPlayer cp = (ComputerPlayer) p;
-
-            int settlementNodeId = cp.placeRandomValidSettlement(board, (roundNumber == 2));
-            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed settlement at node " + settlementNodeId);
-
-            int edgeIndex = cp.placeRandomValidRoad(board, settlementNodeId);
-            displayTurnSummary(roundNumber, p.getPlayerId(), "Placed road at edge " + edgeIndex + " (adjacent to node " + settlementNodeId + ")");
-
-            return settlementNodeId;
-
-        }
-
-        return -1;
-
-    }
     /**
      * After the second setup settlement, the player gains 1 resource from each
      * adjacent non-desert tile.

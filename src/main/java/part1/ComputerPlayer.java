@@ -115,6 +115,23 @@ public class ComputerPlayer extends Player {
 
     // Helpers
     /**
+     * Places the initial settlement and road during setup.
+     * Picks a random valid node for the settlement, then a random free adjacent edge for the road.
+     *
+     * @param board game board
+     * @param roundNumber 1 or 2 (setup round number)
+     * @return the node id where the settlement was placed
+     */
+    @Override
+    public int placeInitialSettlementAndRoad(Board board, int roundNumber)
+    {
+        boolean isSecondSettlement = (roundNumber == 2);
+        int settlementNodeId = placeRandomValidSettlement(board, isSecondSettlement);
+        placeRandomValidRoad(board, settlementNodeId);
+        return settlementNodeId;
+    }
+
+    /**
      * Places a settlement at a random valid node.
      * It tries many random nodes until it finds one that works.
      *

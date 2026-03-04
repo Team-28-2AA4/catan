@@ -53,6 +53,16 @@ public abstract class Player {
      */
     public abstract TurnResult turn(Board board);
 
+    /**
+     * Places the initial settlement and road during setup rounds.
+     * Called by the Game during the first two rounds of setup.
+     *
+     * @param board game board
+     * @param roundNumber 1 or 2 (setup round number)
+     * @return the node id where the settlement was placed
+     */
+    public abstract int placeInitialSettlementAndRoad(Board board, int roundNumber);
+
 
 
 
