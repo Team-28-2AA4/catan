@@ -25,19 +25,30 @@ public class Demonstrator {
     public static void main(String[] args) {
 
         int turns = ConfigLoader.loadTurns("config.txt");
+        java.util.Scanner loopScanner = new java.util.Scanner(System.in);
 
-        Board board = new Board();
+        while (true)
+        {
+            Board board = new Board();
 
-        List<Player> players = new ArrayList<>();
+            List<Player> players = new ArrayList<>();
 
-        
-    // Add 4 computer players (ids 0 to 3).
-        players.add(new HumanPlayer(0));
-        players.add(new HumanPlayer(1));
-        players.add(new ComputerPlayer(2));
-        players.add(new ComputerPlayer(3));
+            // Add 1 human player and 3 computer players
+            players.add(new HumanPlayer(0));
+            players.add(new ComputerPlayer(1));
+            players.add(new ComputerPlayer(2));
+            players.add(new ComputerPlayer(3));
 
-        Game game = new Game(board, players, turns);
-        game.startGame();
+            Game game = new Game(board, players, turns);
+            game.startGame();
+
+            System.out.print("\nPlay again? (yes / no): ");
+            String answer = loopScanner.nextLine().trim();
+            if (!answer.equalsIgnoreCase("yes"))
+            {
+                System.out.println("Thanks for playing!");
+                break;
+            }
+        }
     }
 }
