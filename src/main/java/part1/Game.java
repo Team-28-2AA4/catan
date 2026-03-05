@@ -21,6 +21,9 @@ public class Game {
     /** Basically a hard stop so the simulation does not run forever. */
     private static final int MAX_ROUNDS = 8192;
 
+    /** Path to the visualizer directory — JSON files are written here for the Python visualizer. */
+    private static final String VISUALIZER_DIR = "src/main/java/part1/visualize/";
+
     private int maxRounds;
 
     private static final int MAX_LUMBER_CARDS = 19;
@@ -82,6 +85,8 @@ public class Game {
     public void startGame() {
         initBankCards();
         determineStartingPlayer();
+
+        StateJsonWriter.writeBaseMap(board, VISUALIZER_DIR + "base_map.json");
 
         playFirstTwoRoundsSetup();
         playMainGame();
@@ -153,6 +158,7 @@ public class Game {
 
             int settlementNodeId = p.placeInitialSettlementAndRoad(board, 1);
             displayTurnSummary(1, p.getPlayerId(), "Placed settlement and road at node " + settlementNodeId);
+            StateJsonWriter.writeState(board, VISUALIZER_DIR + "state.json");
 
             currentPlayerIndex = index;
         }
@@ -166,7 +172,8 @@ public class Game {
 
             int secondSettlementNodeId = p.placeInitialSettlementAndRoad(board, 2);
             addStartingResourcesFromSecondSettlement(p, secondSettlementNodeId);
-            
+            StateJsonWriter.writeState(board, VISUALIZER_DIR + "state.json");
+
             currentPlayerIndex = index;
         }
         
@@ -201,6 +208,7 @@ public class Game {
                 String actionSummary = applyTurnResult(p, decision);
                 String finalTurnSummary = resourceCollectionSummary + actionSummary;
 
+                StateJsonWriter.writeState(board, VISUALIZER_DIR + "state.json");
                 displayTurnSummary(rounds, p.getPlayerId(), finalTurnSummary);
                 checkWinner();
 

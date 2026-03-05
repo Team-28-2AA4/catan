@@ -1,0 +1,8 @@
+#!/bin/sh
+'''exec' "/Users/denzeljohnson/Desktop/Uni/Level 2/Sem 2/3) Design/Assignments/1/catan-code-team-28/src/main/java/part1/visualize/.venv/bin/python3.11" "$0" "$@"
+' '''
+import sys
+from typer.cli import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")/src/main/java/part1/visualize"
+source .venv/bin/activate
+python light_visualizer.py base_map.json --watch
