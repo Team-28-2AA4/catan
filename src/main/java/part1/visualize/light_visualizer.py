@@ -21,11 +21,7 @@ import time
 
 
 class CatanBoardVisualizer:
-    """
-    Facade for visualizing the Catan board from JSON files.
-    This class provides an interface to convert JSON catan board data into
-    Catanatron objects and render them using pygame.
-    """
+    """Converts JSON board data to catanatron objects and renders with pygame."""
 
     def __init__(self):
         self.map_data: Optional[Dict] = None
@@ -33,16 +29,12 @@ class CatanBoardVisualizer:
         self.game: Optional[Game] = None
 
     def load_map_json(self, json_path: str) -> None:
-        """
-        Load base map from JSON file.
-        """
+        """Load base map from JSON."""
         with open(json_path, 'r') as f:
             self.map_data = json.load(f)
 
     def load_state_json(self, json_path: str) -> None:
-        """
-        Load game state from JSON file.
-        """
+        """Load game state from JSON."""
         with open(json_path, 'r') as f:
             self.state_data = json.load(f)
 
@@ -79,13 +71,11 @@ class CatanBoardVisualizer:
         return color_map[color_str]
 
     def _create_map_from_json(self) -> CatanMap:
-        """
-        Create a CatanMap from the loaded JSON data.
-        """
+        """Build CatanMap from loaded JSON."""
         if self.map_data is None:
             raise ValueError("No map data loaded. Call load_map_json first.")
 
-        # Convert tiles to coordinate: (resource, number) mapping
+        # Convert tiles to coords/resources/numbers
         tile_coords = []
         resources = []
         numbers = []
@@ -104,10 +94,10 @@ class CatanBoardVisualizer:
             if resource is not None:
                 numbers.append(tile_data["number"])
 
-        # Build topology from coordinates (now: all land tiles)
+        # Build topology (all land tiles)
         topology = {coord: LandTile for coord in tile_coords}
 
-        # Create MapTemplate
+        # Create template
         template = MapTemplate(
             numbers=numbers,
             port_resources=[],
@@ -118,7 +108,7 @@ class CatanBoardVisualizer:
         numbers_reversed = list(reversed(numbers))
         resources_reversed = list(reversed(resources))
 
-        # Initialize tiles using the template
+        # Initialize tiles
         tiles = initialize_tiles(
             template,
             shuffled_numbers_param=numbers_reversed,
@@ -126,58 +116,49 @@ class CatanBoardVisualizer:
             shuffled_tile_resources_param=resources_reversed,
         )
 
-        # Create and return the map
+        # Return map
         catan_map = CatanMap.from_tiles(tiles)
 
         return catan_map
 
     def _apply_state_to_board(self, board: Board):
-        """Apply roads and buildings from JSON state to the board."""
+        """Apply roads/buildings from JSON to board.
+        
+        Sets board dicts directly instead of calling build_settlement/build_road
+        because those validate against STATIC_GRAPH (standard map), but we use
+        a custom map with different node IDs.
+        """
 
-        # For buildings
         for building_data in self.state_data.get("buildings", []):
             node_id = building_data["node"]
             color = self._parse_color(building_data["owner"])
             building_type = building_data["type"]
 
             if building_type == "SETTLEMENT":
-                board.build_settlement(
-                    color,
-                    node_id,
-                    initial_build_phase=True
-                )
+                board.buildings[node_id] = (color, SETTLEMENT)
             elif building_type == "CITY":
-                # Note: build_city assumes a settlement already exists there
-                # For visualization from JSON, we need to build settlement first
-                board.build_settlement(color, node_id, initial_build_phase=True)
-                board.build_city(color, node_id)
+                board.buildings[node_id] = (color, CITY)
             else:
                 raise ValueError(f"Unknown building type: {building_type}")
 
-        # For roads
         for road_data in self.state_data.get("roads", []):
-            edge = (road_data["a"], road_data["b"])
+            a, b = road_data["a"], road_data["b"]
             color = self._parse_color(road_data["owner"])
-            board.build_road(color, edge)
+            board.roads[(a, b)] = color
+            board.roads[(b, a)] = color
 
     def build_game(self) -> Game:
-        """
-        Build a Game object from the loaded JSON data.
-
-        Returns:
-            Game object ready for rendering
-        """
+        """Build Game object from loaded JSON data."""
         # Create map
         catan_map = self._create_map_from_json()
 
-        # Create dummy players (needed for Game initialization)
-        # We don't need actual players for visualization
+        # Dummy players (needed for init, not used for rendering)
         players = [
             Player(Color.BLUE),
             Player(Color.RED)
         ]
 
-        # Create game with the map
+        # Create game
         game = Game(
             players=players,
             seed=42,
@@ -185,7 +166,7 @@ class CatanBoardVisualizer:
             initialize=True,
         )
 
-        # Apply state to the board
+        # Apply state
         self._apply_state_to_board(game.state.board)
 
         self.game = game
@@ -197,26 +178,15 @@ class CatanBoardVisualizer:
             render_scale: float = 1.0,
             show: bool = False,
     ) -> np.ndarray:
-        """
-        Render the board and save to file.
-        Args:
-            output_dir: Directory to save the rendered image (PNG). If None, doesn't save.
-            render_scale: Scale factor for rendering (default 1.0)
-            show: Whether to display the image (requires display)
-
-        Returns:
-            RGB numpy array of the rendered board
-        """
+        """Render board and save to file."""
         if self.game is None:
             self.build_game()
 
-        # Create renderer
+        # Render
         renderer = PygameRenderer(render_scale=render_scale)
-
-        # Render the game
         rgb_array = renderer.render(self.game)
 
-        # Save image
+        # Save
         os.makedirs(output_dir, exist_ok=True)
         file_count = len(
             [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f))]
@@ -245,19 +215,22 @@ def visualize_board_from_json(
         output_dir: str = "scraped_boards",
         render_scale: float = 1.0,
 ) -> None:
-    """
-    Convenience function to visualize a Catan board from JSON files.
+    """Visualize board from JSON files. Saves renders to output_dir/Game{id}/."""
+    game_id_path = os.path.join(os.path.dirname(state_json_path), "game_id.txt")
+    game_id = 1
+    if os.path.exists(game_id_path):
+        try:
+            with open(game_id_path) as f:
+                game_id = int(f.read().strip())
+        except (ValueError, OSError):
+            game_id = 1
 
-    Args:
-        map_json_path: Path to map JSON file
-        state_json_path: Path to state JSON file
-        output_dir: Path to save rendered image
-        render_scale: Rendering scale factor (higher = bigger image)
-    """
+    game_output_dir = os.path.join(output_dir, f"Game{game_id}")
+
     visualizer = CatanBoardVisualizer()
     visualizer.load_map_json(map_json_path)
     visualizer.load_state_json(state_json_path)
-    visualizer.render(output_dir=output_dir, render_scale=render_scale)
+    visualizer.render(output_dir=game_output_dir, render_scale=render_scale)
 
 
 if __name__ == "__main__":

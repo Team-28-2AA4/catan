@@ -1,24 +1,17 @@
 package part1;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
 /**
- * StateJsonWriter
- * Writes the two JSON files consumed by the Python visualizer:
- * - base_map.json  — static board layout (tiles, resources, dice numbers)
- * - state.json     — dynamic game state (placed roads and buildings)
- *
- * Call writeBaseMap() once at game start and writeState() after every turn.
- *
- * @author Team 28
+ * Writes JSON files for the Python visualizer.
+ * Call writeBaseMap() once at game start, writeState() after each turn.
  */
 public class StateJsonWriter
 {
-    /**
-     * Cube coordinates (q, s, r) for each tile index 0–18.
-     * Order matches Board.terrainTilesSetup exactly.
-     */
+    // Cube coords for each tile (matches Board.terrainTilesSetup order)
     private static final int[][] TILE_CUBE_COORDS = {
         { 0,  0,  0},
         { 0, -1,  1},
@@ -41,21 +34,28 @@ public class StateJsonWriter
         { 1, -2,  1}
     };
 
-    /**
-     * Player colour names indexed by player ID (0–3).
-     * Matches the colours supported by the Python visualizer.
-     */
+    // Player colours for visualizer
     private static final String[] PLAYER_COLOURS = {"RED", "BLUE", "ORANGE", "WHITE"};
 
+    // Maps Java node IDs to catanatron node IDs.
+    // Java starts corners at NE, catanatron starts at N, so we need this lookup.
+    private static final int[] JAVA_TO_CATANATRON_NODE = {
+         1,  2,  3,  4,  5,  0,  6,  7,  8,  9,
+        10, 11, 12, 14, 15, 13, 17, 18, 16, 20,
+        21, 19, 22, 23, 24, 25, 26, 27, 28, 29,
+        30, 31, 32, 33, 34, 36, 37, 35, 39, 38,
+        41, 42, 40, 44, 43, 45, 47, 46, 48, 49,
+        50, 51, 52, 53
+    };
+
     /**
-     * Writes base_map.json from the current board's tile layout.
-     * This file is static for the lifetime of a game and only needs to be written once.
-     *
-     * @param board      the game board
-     * @param outputPath full path to write base_map.json
+     * Writes base_map.json (static board layout).
+     * Also increments game_id.txt for organizing renders.
      */
     public static void writeBaseMap(Board board, String outputPath)
     {
+        String dir = outputPath.substring(0, outputPath.lastIndexOf('/') + 1);
+        writeGameId(dir);
         StringBuilder json = new StringBuilder();
         json.append("{\n  \"tiles\": [\n");
 
@@ -96,11 +96,8 @@ public class StateJsonWriter
     }
 
     /**
-     * Writes state.json reflecting all currently placed roads and buildings.
-     * Call this after every turn so the visualizer stays in sync.
-     *
-     * @param board      the game board
-     * @param outputPath full path to write state.json
+     * Writes state.json with current roads/buildings.
+     * Call after each turn to keep visualizer in sync.
      */
     public static void writeState(Board board, String outputPath)
     {
@@ -170,36 +167,37 @@ public class StateJsonWriter
         writeFile(outputPath, json.toString());
     }
 
-    /**
-     * Remaps a Java board node ID to the equivalent catanatron node ID.
-     *
-     * The two implementations agree on all 54 nodes except for a swap of
-     * nodes 45 and 47 in the outer ring.  Applying this remap before writing
-     * roads and buildings keeps the visualizer's edge-validity check happy.
-     *
-     * @param javaNodeId node ID from the Java Board
-     * @return node ID as used by catanatron
-     */
-    private static int toCatanatronNodeId(int javaNodeId)
+    // Reads/increments/writes game_id.txt (starts at 1 if file missing)
+    private static void writeGameId(String dir)
     {
-        if (javaNodeId == 45)
+        String path = dir + "game_id.txt";
+        int currentId = 0;
+
+        try
         {
-            return 47;
+            BufferedReader reader = new BufferedReader(new FileReader(path));
+            String line = reader.readLine();
+            reader.close();
+            if (line != null)
+            {
+                currentId = Integer.parseInt(line.trim());
+            }
         }
-        if (javaNodeId == 47)
+        catch (IOException | NumberFormatException ignored)
         {
-            return 45;
+            currentId = 0;
         }
-        return javaNodeId;
+
+        writeFile(path, String.valueOf(currentId + 1));
     }
 
-    /**
-     * Maps a ResourceType to the name string expected by the Python visualizer.
-     * Returns "null" (the JSON literal) for the desert tile.
-     *
-     * @param resourceType resource type from the Java enum
-     * @return JSON value string
-     */
+    // Converts Java node ID to catanatron node ID
+    private static int toCatanatronNodeId(int javaNodeId)
+    {
+        return JAVA_TO_CATANATRON_NODE[javaNodeId];
+    }
+
+    // Converts Java ResourceType to visualizer string (returns "null" for desert)
     private static String toVisualizerResourceName(ResourceType resourceType)
     {
         if (resourceType == null)
@@ -225,12 +223,7 @@ public class StateJsonWriter
         return "\"ORE\"";
     }
 
-    /**
-     * Maps a player ID to a colour name string recognised by the Python visualizer.
-     *
-     * @param playerId integer player ID (0–3)
-     * @return colour name string
-     */
+    // Converts player ID to colour string for visualizer
     private static String toPlayerColour(int playerId)
     {
         if (playerId >= 0 && playerId < PLAYER_COLOURS.length)
@@ -240,14 +233,7 @@ public class StateJsonWriter
         return "WHITE";
     }
 
-    /**
-     * Writes content to a file, overwriting it if it already exists.
-     * Silently suppresses IO errors so a missing visualize directory
-     * does not crash the game.
-     *
-     * @param path    file path to write
-     * @param content string content to write
-     */
+    // Writes file, suppresses errors so missing visualize dir doesn't crash game
     private static void writeFile(String path, String content)
     {
         try
