@@ -69,6 +69,9 @@ public class Board {
     /** For each node, stores the edge indices that touch it  */
     private final List<Integer>[] nodeToEdgeIndices = (List<Integer>[]) new List[NODE_COUNT];
 
+    // Tracks which tile the robber is currently on (-1 = not placed yet)
+    private int robberTileId = -1;
+
     /**
      * Hard-coded board setup.
      * Each TerrainTile stores: tile id, resource type, dice token, and the 6 corner nodes.
@@ -533,6 +536,18 @@ public class Board {
     public TerrainTile getTile(int tileId) {
         return tiles[tileId];
     }
+
+    // Robber position getter/setter
+    public int getRobberTileId()
+    {
+        return robberTileId;
+    }
+
+    public void setRobberTileId(int tileId)
+    {
+        robberTileId = tileId;
+    }
+
     /**
      * Gets the node by node id.
      *

@@ -1,2 +1,7 @@
 target/
 *.class
+
+# Vendored visualizer dependencies (not our code)
+src/main/java/part1/visualize/catanatron/
+src/main/java/part1/visualize/.venv/
+src/main/java/part1/visualize/scraped_boards/

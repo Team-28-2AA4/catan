@@ -13,5 +13,6 @@ public enum ActionType {
     BUILD_ROAD,
     BUILD_SETTLEMENT,
     BUILD_CITY,
-    MARITIME_TRADE
+    MARITIME_TRADE,
+    ROBBER
 }

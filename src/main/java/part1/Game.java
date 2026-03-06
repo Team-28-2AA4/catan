@@ -1,6 +1,7 @@
 package part1;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Game
@@ -202,7 +203,18 @@ public class Game {
 
             // Roll the dice and award resources to everyone.
                 int roll = p.diceRoll();
-                String resourceCollectionSummary = awardResourcesForAllPlayers(roll, p.getPlayerId());
+                String resourceCollectionSummary;
+                if (roll == 7)
+                {
+                    discardExcessCards();
+                    int newRobberTile = placeRobberOnRandomTile();
+                    stealFromRandomAdjacentPlayer(p, newRobberTile);
+                    resourceCollectionSummary = "Rolled 7 — Robber activated! ";
+                }
+                else
+                {
+                    resourceCollectionSummary = awardResourcesForAllPlayers(roll, p.getPlayerId());
+                }
              // Let the player decide what to do, then apply it.
                 Player.TurnResult decision = p.turn(board, this);
                 String actionSummary = applyTurnResult(p, decision);
@@ -550,6 +562,137 @@ public class Game {
             longestRoadHolder.addVictoryPoints(2);
         }
     }
+
+    /**
+     * Discards excess cards from any player holding more than 7.
+     * Each over-limit player loses floor(totalCards / 2) randomly chosen cards back to the bank.
+     */
+    private void discardExcessCards()
+    {
+        Random random = new Random();
+        for (int i = 0; i < players.size(); i++)
+        {
+            Player p = players.get(i);
+            int total = 0;
+            ResourceType[] allTypes = ResourceType.values();
+            for (int j = 0; j < allTypes.length; j++)
+            {
+                total += p.getResourceCount(allTypes[j]);
+            }
+
+            if (total <= 7)
+            {
+                continue;
+            }
+
+            int toDiscard = total / 2;
+            System.out.println("Player " + p.getPlayerId() + " has " + total + " cards and must discard " + toDiscard + ".");
+
+            for (int d = 0; d < toDiscard; d++)
+            {
+                // Build a list of resources the player currently holds (one entry per card)
+                List<ResourceType> hand = new ArrayList<>();
+                for (int j = 0; j < allTypes.length; j++)
+                {
+                    int count = p.getResourceCount(allTypes[j]);
+                    for (int k = 0; k < count; k++)
+                    {
+                        hand.add(allTypes[j]);
+                    }
+                }
+                ResourceType chosen = hand.get(random.nextInt(hand.size()));
+                p.spendResource(chosen, 1);
+                returnToBank(chosen, 1);
+            }
+        }
+    }
+
+    /**
+     * Moves the robber to a random tile, excluding where it currently is.
+     * Returns the new tile id.
+     */
+    private int placeRobberOnRandomTile()
+    {
+        Random random = new Random();
+        int currentTile = board.getRobberTileId();
+        int newTile;
+        do
+        {
+            newTile = random.nextInt(Board.TILE_COUNT);
+        }
+        while (newTile == currentTile);
+
+        board.setRobberTileId(newTile);
+        System.out.println("Robber moved to tile " + newTile + ".");
+        return newTile;
+    }
+
+    /**
+     * Steals a random card from a random qualifying player adjacent to the robber tile.
+     * Qualifying means they have a settlement or city on one of the tile's corner nodes.
+     * Does nothing if no qualifying players exist.
+     */
+    private void stealFromRandomAdjacentPlayer(Player roller, int robberTileId)
+    {
+        Random random = new Random();
+        Board.TerrainTile tile = board.getTile(robberTileId);
+        if (tile == null)
+        {
+            return;
+        }
+
+        List<Player> qualifyingPlayers = new ArrayList<>();
+        for (int i = 0; i < tile.cornerNodeIdsClockwise.length; i++)
+        {
+            int nodeId = tile.cornerNodeIdsClockwise[i];
+            Board.Building building = board.getBuilding(nodeId);
+            if (building == null)
+            {
+                continue;
+            }
+            if (building.ownerPlayerId == roller.getPlayerId())
+            {
+                continue;
+            }
+            Player owner = getPlayerById(building.ownerPlayerId);
+            if (owner != null && !qualifyingPlayers.contains(owner))
+            {
+                qualifyingPlayers.add(owner);
+            }
+        }
+
+        if (qualifyingPlayers.isEmpty())
+        {
+            System.out.println("No adjacent players to steal from.");
+            return;
+        }
+
+        Player victim = qualifyingPlayers.get(random.nextInt(qualifyingPlayers.size()));
+
+        // Build victim's hand and pick a random card
+        ResourceType[] allTypes = ResourceType.values();
+        List<ResourceType> victimHand = new ArrayList<>();
+        for (int j = 0; j < allTypes.length; j++)
+        {
+            int count = victim.getResourceCount(allTypes[j]);
+            for (int k = 0; k < count; k++)
+            {
+                victimHand.add(allTypes[j]);
+            }
+        }
+
+        if (victimHand.isEmpty())
+        {
+            System.out.println("Player " + victim.getPlayerId() + " has no cards to steal.");
+            return;
+        }
+
+        ResourceType stolen = victimHand.get(random.nextInt(victimHand.size()));
+        victim.spendResource(stolen, 1);
+        roller.addResource(stolen, 1);
+        System.out.println("Player " + roller.getPlayerId() + " stole 1 " + stolen + " from Player " + victim.getPlayerId() + ".");
+    }
+
     public String awardResourcesForAllPlayers(int roll, int currentPlayerId) {
 
         int lumberGained = 0;
