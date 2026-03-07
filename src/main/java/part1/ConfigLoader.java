@@ -16,8 +16,7 @@ public class ConfigLoader {
                     int turns = Integer.parseInt(line.split(":")[1].trim());
 
                     if (turns < 1 || turns > 8192) {
-                        throw new IllegalArgumentException(
-                                "Turns must be between 1 and 8192.");
+                        throw new IllegalArgumentException("Turns must be between 1 and 8192.");
                     }
 
                     return turns;
@@ -25,20 +24,17 @@ public class ConfigLoader {
             }
 
             // If we finished scanning and didn't find turns:
-            throw new IllegalArgumentException(
-                    "Missing 'turns:' in config file.");
+            throw new IllegalArgumentException("Missing 'turns:' in config file.");
 
         } catch (IllegalArgumentException e) {
-            // Re-throw validation errors as-is
+            // Re throw validation errors
             throw e;
 
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(
-                    "Config file not found: " + filename, e);
+            throw new RuntimeException("Config file not found: " + filename, e);
 
         } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error reading config file: " + e.getMessage(), e);
+            throw new RuntimeException("Error reading config file: " + e.getMessage(), e);
         }
     }
 }

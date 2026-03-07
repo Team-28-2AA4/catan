@@ -166,9 +166,10 @@ public class Game {
         rounds = 1;
         displayRoundSummary();
 
-        // Round 2
+        // Round 2 — snake order: start from the last player of round 1 and go backwards
+        int lastRound1PlayerIndex = getPlayerIndexClockwise(startingPlayerIndex, players.size() - 1);
         for (int step = 0; step < players.size(); step++){
-            int index = getPlayerIndexCounterClockwise(startingPlayerIndex, step);
+            int index = getPlayerIndexCounterClockwise(lastRound1PlayerIndex, step);
             Player p = players.get(index);
 
             int secondSettlementNodeId = p.placeInitialSettlementAndRoad(board, 2);
