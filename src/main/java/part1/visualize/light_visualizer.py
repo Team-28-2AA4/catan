@@ -202,12 +202,6 @@ class CatanBoardVisualizer:
 
         return output_path
 
-        # Clean up
-        renderer.close()
-
-        return rgb_array
-
-
 
 def visualize_board_from_json(
         map_json_path: str,

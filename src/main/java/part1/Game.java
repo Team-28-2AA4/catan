@@ -37,6 +37,7 @@ public class Game {
     private final Board board;
     private final List<Player> players;
     private final int[] resourceCardsInTheBank = new int[ResourceType.values().length];
+    private final Random random = new Random();
 
     private int startingPlayerIndex;
     private int currentPlayerIndex;
@@ -570,7 +571,6 @@ public class Game {
      */
     private void discardExcessCards()
     {
-        Random random = new Random();
         for (int i = 0; i < players.size(); i++)
         {
             Player p = players.get(i);
@@ -614,7 +614,6 @@ public class Game {
      */
     private int placeRobberOnRandomTile()
     {
-        Random random = new Random();
         int currentTile = board.getRobberTileId();
         int newTile;
         do
@@ -635,7 +634,6 @@ public class Game {
      */
     private void stealFromRandomAdjacentPlayer(Player roller, int robberTileId)
     {
-        Random random = new Random();
         Board.TerrainTile tile = board.getTile(robberTileId);
         if (tile == null)
         {
