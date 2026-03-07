@@ -1,7 +1,7 @@
 package part1;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.security.SecureRandom;
 
 /**
  * Game
@@ -37,7 +37,7 @@ public class Game {
     private final Board board;
     private final List<Player> players;
     private final int[] resourceCardsInTheBank = new int[ResourceType.values().length];
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     private int startingPlayerIndex;
     private int currentPlayerIndex;
