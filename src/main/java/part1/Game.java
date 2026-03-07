@@ -182,7 +182,7 @@ public class Game {
         
         rounds = 2;
         displayRoundSummary();
-
+        //
         // After setup, start normal turns from the starting player.
         currentPlayerIndex = startingPlayerIndex;
         
