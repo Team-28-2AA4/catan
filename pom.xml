@@ -3,7 +3,7 @@
    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>team-28</groupId>
-  <artifactId>assignment01_Team_28</artifactId> <!-- this is the first part of the name of your jar file after 'mvn package' -->
+  <artifactId>assignment02_Team_28</artifactId> <!-- this is the first part of the name of your jar file after 'mvn package' -->
   <packaging>jar</packaging>
   <version>0.1.0</version><!-- this is the second part of the name of your jar file after 'mvn package' -->
 
@@ -17,6 +17,27 @@
   <!-- Start:: This specifies the main class for the jar file to be executed by 'java -jar filename.jar' -->
   <build>
      <plugins>
+        <plugin>
+           <groupId>org.apache.maven.plugins</groupId>
+           <artifactId>maven-surefire-plugin</artifactId>
+           <version>3.1.2</version>
+        </plugin>
+        <plugin>
+           <groupId>org.jacoco</groupId>
+           <artifactId>jacoco-maven-plugin</artifactId>
+           <version>0.8.11</version>
+           <executions>
+              <execution>
+                 <id>prepare-agent</id>
+                 <goals><goal>prepare-agent</goal></goals>
+              </execution>
+              <execution>
+                 <id>report</id>
+                 <phase>test</phase>
+                 <goals><goal>report</goal></goals>
+              </execution>
+           </executions>
+        </plugin>
         <plugin>
            <groupId>org.apache.maven.plugins</groupId>
            <artifactId>maven-shade-plugin</artifactId>
