@@ -20,7 +20,8 @@ public class CommandParser
     private static final Pattern BUILD_CITY_PATTERN = Pattern.compile("^\\s*build\\s+city\\s+(\\d+)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern BUILD_ROAD_PATTERN = Pattern.compile("^\\s*build\\s+road\\s+(\\d+)\\s*,\\s*(\\d+)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern MARITIME_TRADE_PATTERN = Pattern.compile("^\\s*trade\\s+(\\w+)\\s+(\\w+)\\s*$", Pattern.CASE_INSENSITIVE);
-
+    private static final Pattern UNDO_PATTERN = Pattern.compile("^\\s*undo\\s*$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern REDO_PATTERN = Pattern.compile("^\\s*redo\\s*$", Pattern.CASE_INSENSITIVE);
     /**
      * Parses a human input command string and returns the corresponding TurnResult.
      * Uses regular expressions to match commands case-insensitively.
@@ -108,9 +109,20 @@ public class CommandParser
             String tradeSummary = "Trade " + resourceToGive + " for " + resourceToGet;
             return Player.TurnResult.maritimeTrade(resourceToGive, resourceToGet, tradeSummary);
         }
+        //check undo command
+        Matcher undoMatcher = UNDO_PATTERN.matcher(trimmedInput);
+        if (undoMatcher.matches()) {
+            return Player.TurnResult.pass("Undo");
+        }
 
+        //check redo command
+        Matcher redoMatcher = REDO_PATTERN.matcher(trimmedInput);
+        if (redoMatcher.matches()) {
+            return Player.TurnResult.pass("Redo");
+        }
         // No match found
         return null;
+
     }
 
     /**

@@ -3,7 +3,7 @@ import java.util.*;
 
 /**
  * Board
-<<<<<<< HEAD
+
  * Manages the initialization of the game Board and the state of the placed pieces 
  * 
  * Nested Classes:
@@ -23,15 +23,12 @@ import java.util.*;
 
  * Denzel
  * Fatihun
-<<<<<<< HEAD
 
-=======
  * 
  * Fatihun committed
  * 
  * Ify is here
->>>>>>> ify
-=======
+
  * Sets up the Catan board layout (tiles, nodes, edges) and keeps track of what
  * buildings and roads have been placed during the game.
  *
@@ -39,7 +36,6 @@ import java.util.*;
  * TerrainTile, Node, Edge, Building, Road.
  *
  * @author Team 28
->>>>>>> 22f25df1ee409081350c2ea1ea39f8bb73c26b6a
  */
 
 
@@ -323,6 +319,22 @@ public class Board {
         owner.addVictoryPoints(1);
     
     }
+
+    /**
+    * Removes the building currently placed on a node.
+    *
+    * This method is mainly used by undo functionality to reverse
+    * a settlement placement.
+    *
+    * @param nodeId node whose building should be removed
+    */
+    public void removeBuilding(int nodeId) {
+        if (nodeId < 0 || nodeId >= NODE_COUNT) {
+            throw new IllegalStateException("Invalid nodeId: " + nodeId);
+        }
+        buildings[nodeId] = null;
+    }
+
      /**
      * Upgrades a settlement to a city at the given node.
      * The node must already have the owner's settlement.
@@ -348,6 +360,32 @@ public class Board {
         buildings[nodeId] = new Building(ownerPlayerId, nodeId, BuildingKind.CITY);
         owner.addVictoryPoints(1);
     }
+
+    /**
+    * Downgrades a city back into a settlement for the given player.
+    *
+    * This method is mainly used by undo functionality to reverse
+    * a city upgrade while preserving ownership of the building.
+    *
+    * @param nodeId node containing the city
+    * @param owner player who owns the building
+    */
+    public void downgradeCityToSettlement(int nodeId, Player owner) {
+        int ownerPlayerId = owner.getPlayerId();
+        Building existing = buildings[nodeId];
+
+        if (existing == null) {
+            throw new IllegalStateException("No building at node " + nodeId);
+        }
+        if (existing.ownerPlayerId != ownerPlayerId) {
+            throw new IllegalStateException("Building not owned by player " + ownerPlayerId);
+        }
+        if (existing.kind != BuildingKind.CITY) {
+            throw new IllegalStateException("Building at node " + nodeId + " is not a city.");
+        }
+
+        buildings[nodeId] = new Building(ownerPlayerId, nodeId, BuildingKind.SETTLEMENT);
+    }
     /**
      * Places a road on an edge index for a player.
      *
@@ -365,6 +403,21 @@ public class Board {
 
         roads[edgeIndex] = new Road(ownerPlayerId, edgeIndex);
     
+    }
+
+    /**
+    * Removes the road currently placed on an edge.
+    *
+    * This method is mainly used by undo functionality to reverse
+    * a previously executed road placement.
+    *
+    * @param edgeIndex edge index where the road should be removed
+    */
+    public void removeRoad(int edgeIndex) {
+        if (edgeIndex < 0 || edgeIndex >= EDGE_COUNT) {
+            throw new IllegalStateException("Invalid edgeIndex: " + edgeIndex);
+        }
+        roads[edgeIndex] = null;
     }
     /**
      * Checks the distance rule for settlements/cities.

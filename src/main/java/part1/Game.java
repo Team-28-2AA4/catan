@@ -25,6 +25,10 @@ public class Game {
     /** Path to the visualizer directory — JSON files are written here for the Python visualizer. */
     private static final String VISUALIZER_DIR = "src/main/java/part1/visualize/";
 
+
+    /** Manages executed commands for undo/redo functionality. */
+    private final CommandManager commandManager;
+
     private int maxRounds;
 
     private static final int MAX_LUMBER_CARDS = 19;
@@ -69,6 +73,7 @@ public class Game {
         this.longestRoadHolder = null;
         this.maxRounds = MAX_ROUNDS;
 
+        this.commandManager=new CommandManager();
     }
 
     public Game(Board board, List<Player> players, int usersmaxRounds) {
@@ -283,6 +288,24 @@ public class Game {
         if (tr == null) {
             return "No action";
         }
+        if ("Undo".equalsIgnoreCase(tr.decisionSummary)) {
+            boolean undone = undo();
+            if (undone) {
+                updateLongestRoadHolder();
+                return "Undo performed.";
+            }
+            return "Nothing to undo.";
+        }
+
+        if ("Redo".equalsIgnoreCase(tr.decisionSummary)) {
+            boolean redone = redo();
+            if (redone) {
+                updateLongestRoadHolder();
+                return "Redo performed.";
+            }
+            return "Nothing to redo.";
+        }
+        
         if (tr.actionType == ActionType.PASS) {
             if (tr.decisionSummary != null && tr.decisionSummary.length() > 0) {
                 return tr.decisionSummary;
@@ -298,16 +321,11 @@ public class Game {
             }
             if (!board.isRoadEmpty(tr.edgeIndex)) {
                 return "Tried to build ROAD but edge is occupied.";
-            }
+            }   
 
-            p.spendResource(ResourceType.LUMBER, 1);
-            p.spendResource(ResourceType.BRICK, 1);
-            p.spendRoads(1);
+            GameCommand command = new BuildRoadCommand(this, board, p, tr.edgeIndex);
+            commandManager.executeCommand(command);
 
-            returnToBank(ResourceType.LUMBER, 1);
-            returnToBank(ResourceType.BRICK, 1);
-
-            board.placeRoad(tr.edgeIndex, p.getPlayerId());
             updateLongestRoadHolder();
 
             return "Built ROAD at edge " + tr.edgeIndex + ".";
@@ -938,6 +956,26 @@ public class Game {
                 break;
             }
         }
+    }
+
+    /**to implement R3.1 undo
+     * @return true if action was undone, false if there was nothing to undo
+     * */
+    
+    public boolean undo() {
+        return commandManager.undo();
+    }
+
+    /*to implement R3.1 redo 
+    *@return true if action was redone, false if nothing to redo
+    */
+    public boolean redo() {
+        return commandManager.redo();
+    }
+
+    //returns command manager used by game
+    public CommandManager getCommandManager() {
+        return commandManager;
     }
 
     
