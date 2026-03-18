@@ -104,6 +104,18 @@ public class ComputerPlayer extends Player {
             validCityNodes = findValidCityPlacements(board);
         }
 
+        if (canBuildRoad) {
+            int gapEdge = findGapBridgingEdge(board);
+            if (gapEdge != -1) {
+                return Player.TurnResult.buildRoad(gapEdge, "Chose to build ROAD to connect road segments");
+            }
+
+            int defenceEdge = findLongestRoadExtensionEdge(board, game);
+            if (defenceEdge != -1) {
+                return Player.TurnResult.buildRoad(defenceEdge, "Chose to build ROAD to protect longest road");
+            }
+        }
+
 
     // 2) Randomize move between valid options
         int totalOptions = validRoadEdges.size() + validSettlementNodes.size() + validCityNodes.size();
@@ -174,6 +186,260 @@ public class ComputerPlayer extends Player {
         }
 
         return indices;
+    }
+
+    private int findGapBridgingEdge(Board board)
+    {
+        List<Integer> validRoadEdges = findValidRoadPlacements(board);
+        if (validRoadEdges.isEmpty())
+        {
+            return -1;
+        }
+
+        int[] componentByNode = buildRoadComponentLookup(board);
+
+        for (int i = 0; i < validRoadEdges.size(); i++)
+        {
+            int edgeIndex = validRoadEdges.get(i).intValue();
+            Board.Edge edge = board.getEdge(edgeIndex);
+            int component1 = componentByNode[edge.node1];
+            int component2 = componentByNode[edge.node2];
+
+            if (component1 != -1 && component2 != -1 && component1 != component2)
+            {
+                return edgeIndex;
+            }
+        }
+
+        for (int i = 0; i < validRoadEdges.size(); i++)
+        {
+            int edgeIndex = validRoadEdges.get(i).intValue();
+            Board.Edge edge = board.getEdge(edgeIndex);
+            int component1 = componentByNode[edge.node1];
+            int component2 = componentByNode[edge.node2];
+
+            if (component1 != -1 && component2 == -1)
+            {
+                if (reachesDifferentComponentInOneMoreRoad(board, edgeIndex, edge.node2, component1, componentByNode))
+                {
+                    return edgeIndex;
+                }
+            }
+
+            if (component2 != -1 && component1 == -1)
+            {
+                if (reachesDifferentComponentInOneMoreRoad(board, edgeIndex, edge.node1, component2, componentByNode))
+                {
+                    return edgeIndex;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private int findLongestRoadExtensionEdge(Board board, Game game)
+    {
+        int myLongestRoad = board.computeLongestRoadForPlayer(getPlayerId());
+        if (!isOpponentWithinOneRoad(board, myLongestRoad))
+        {
+            return -1;
+        }
+
+        List<Integer> validRoadEdges = findValidRoadPlacements(board);
+        if (validRoadEdges.isEmpty())
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < validRoadEdges.size(); i++)
+        {
+            int edgeIndex = validRoadEdges.get(i).intValue();
+            if (extendsRoadEndpoint(board, edgeIndex))
+            {
+                return edgeIndex;
+            }
+        }
+
+        return validRoadEdges.get(0).intValue();
+    }
+
+    private int[] buildRoadComponentLookup(Board board)
+    {
+        int[] componentByNode = new int[Board.NODE_COUNT];
+        for (int i = 0; i < componentByNode.length; i++)
+        {
+            componentByNode[i] = -1;
+        }
+
+        int nextComponentId = 0;
+        for (int edgeIndex = 0; edgeIndex < Board.EDGE_COUNT; edgeIndex++)
+        {
+            Board.Road road = board.getRoad(edgeIndex);
+            if (road == null || road.ownerPlayerId != getPlayerId())
+            {
+                continue;
+            }
+
+            Board.Edge edge = board.getEdge(edgeIndex);
+            if (componentByNode[edge.node1] == -1)
+            {
+                markRoadComponent(board, edge.node1, nextComponentId, componentByNode);
+                nextComponentId++;
+            }
+        }
+
+        return componentByNode;
+    }
+
+    private void markRoadComponent(Board board, int startNodeId, int componentId, int[] componentByNode)
+    {
+        List<Integer> queue = new ArrayList<Integer>();
+        queue.add(Integer.valueOf(startNodeId));
+        componentByNode[startNodeId] = componentId;
+
+        for (int cursor = 0; cursor < queue.size(); cursor++)
+        {
+            int nodeId = queue.get(cursor).intValue();
+            List<Integer> adjacentEdges = board.getAdjacentEdgeIndicesForNode(nodeId);
+
+            for (int i = 0; i < adjacentEdges.size(); i++)
+            {
+                int edgeIndex = adjacentEdges.get(i).intValue();
+                Board.Road road = board.getRoad(edgeIndex);
+                if (road == null || road.ownerPlayerId != getPlayerId())
+                {
+                    continue;
+                }
+
+                Board.Edge edge = board.getEdge(edgeIndex);
+                int nextNodeId = getOtherNodeId(edge, nodeId);
+                if (componentByNode[nextNodeId] != -1)
+                {
+                    continue;
+                }
+
+                componentByNode[nextNodeId] = componentId;
+                queue.add(Integer.valueOf(nextNodeId));
+            }
+        }
+    }
+
+    private boolean reachesDifferentComponentInOneMoreRoad(Board board, int firstEdgeIndex, int frontierNodeId, int sourceComponentId, int[] componentByNode)
+    {
+        List<Integer> adjacentEdges = board.getAdjacentEdgeIndicesForNode(frontierNodeId);
+        for (int i = 0; i < adjacentEdges.size(); i++)
+        {
+            int edgeIndex = adjacentEdges.get(i).intValue();
+            if (edgeIndex == firstEdgeIndex || !board.isRoadEmpty(edgeIndex))
+            {
+                continue;
+            }
+
+            Board.Edge edge = board.getEdge(edgeIndex);
+            int otherNodeId = getOtherNodeId(edge, frontierNodeId);
+            int otherComponentId = componentByNode[otherNodeId];
+            if (otherComponentId != -1 && otherComponentId != sourceComponentId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isOpponentWithinOneRoad(Board board, int myLongestRoad)
+    {
+        List<Integer> opponentIds = collectOpponentPlayerIds(board);
+        for (int i = 0; i < opponentIds.size(); i++)
+        {
+            int opponentId = opponentIds.get(i).intValue();
+            int opponentLongestRoad = board.computeLongestRoadForPlayer(opponentId);
+            if (opponentLongestRoad >= myLongestRoad - 1)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private List<Integer> collectOpponentPlayerIds(Board board)
+    {
+        List<Integer> opponentIds = new ArrayList<Integer>();
+
+        for (int edgeIndex = 0; edgeIndex < Board.EDGE_COUNT; edgeIndex++)
+        {
+            Board.Road road = board.getRoad(edgeIndex);
+            if (road == null || road.ownerPlayerId == getPlayerId())
+            {
+                continue;
+            }
+            addIdIfMissing(opponentIds, road.ownerPlayerId);
+        }
+
+        for (int nodeId = 0; nodeId < Board.NODE_COUNT; nodeId++)
+        {
+            Board.Building building = board.getBuilding(nodeId);
+            if (building == null || building.ownerPlayerId == getPlayerId())
+            {
+                continue;
+            }
+            addIdIfMissing(opponentIds, building.ownerPlayerId);
+        }
+
+        return opponentIds;
+    }
+
+    private void addIdIfMissing(List<Integer> ids, int playerId)
+    {
+        Integer boxedPlayerId = Integer.valueOf(playerId);
+        if (!ids.contains(boxedPlayerId))
+        {
+            ids.add(boxedPlayerId);
+        }
+    }
+
+    private boolean extendsRoadEndpoint(Board board, int edgeIndex)
+    {
+        Board.Edge edge = board.getEdge(edgeIndex);
+        return isEndpointExtension(board, edge.node1, edge.node2) || isEndpointExtension(board, edge.node2, edge.node1);
+    }
+
+    private boolean isEndpointExtension(Board board, int connectedNodeId, int newNodeId)
+    {
+        if (getMyRoadDegree(board, connectedNodeId) != 1)
+        {
+            return false;
+        }
+
+        return !doesNodeTouchMyRoad(board, newNodeId);
+    }
+
+    private int getMyRoadDegree(Board board, int nodeId)
+    {
+        int roadCount = 0;
+        List<Integer> adjacentEdges = board.getAdjacentEdgeIndicesForNode(nodeId);
+        for (int i = 0; i < adjacentEdges.size(); i++)
+        {
+            int edgeIndex = adjacentEdges.get(i).intValue();
+            Board.Road road = board.getRoad(edgeIndex);
+            if (road != null && road.ownerPlayerId == getPlayerId())
+            {
+                roadCount++;
+            }
+        }
+
+        return roadCount;
+    }
+
+    private int getOtherNodeId(Board.Edge edge, int nodeId)
+    {
+        if (edge.node1 == nodeId)
+        {
+            return edge.node2;
+        }
+        return edge.node1;
     }
 
     /**
