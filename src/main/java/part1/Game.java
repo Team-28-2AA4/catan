@@ -1,7 +1,7 @@
 package part1;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.security.SecureRandom;
 
 /**
  * Game
@@ -332,7 +332,7 @@ public class Game {
         }
 
 
-        // Build Settlement
+                // Build Settlement
         if (tr.actionType == ActionType.BUILD_SETTLEMENT) {
             if (!p.canAffordSettlement()) {
                 return "Tried to build SETTLEMENT but cannot afford it.";
@@ -344,24 +344,14 @@ public class Game {
                 return "Tried to build SETTLEMENT but distance rule is violated.";
             }
 
-            p.spendResource(ResourceType.LUMBER, 1);
-            p.spendResource(ResourceType.BRICK, 1);
-            p.spendResource(ResourceType.WOOL, 1);
-            p.spendResource(ResourceType.GRAIN, 1);
-            p.spendBuilding(BuildingKind.SETTLEMENT, 1);
-
-            returnToBank(ResourceType.LUMBER, 1);
-            returnToBank(ResourceType.BRICK, 1);
-            returnToBank(ResourceType.WOOL, 1);
-            returnToBank(ResourceType.GRAIN, 1);
-
-            board.placeSettlement(tr.nodeId, p);
+            GameCommand command = new BuildSettlementCommand(this, board, p, tr.nodeId);
+            commandManager.executeCommand(command);
 
             return "Built SETTLEMENT at node " + tr.nodeId + ".";
         }
 
 
-        // Build the City
+                // Build the City
         if (tr.actionType == ActionType.BUILD_CITY) {
             if (!p.canAffordCity()) {
                 return "Tried to build CITY but cannot afford it.";
@@ -377,26 +367,31 @@ public class Game {
                 return "Tried to build CITY but it is not a settlement.";
             }
 
-            p.spendResource(ResourceType.GRAIN, 2);
-            p.spendResource(ResourceType.ORE, 3);
-            p.spendBuilding(BuildingKind.CITY, 1);
-
-            returnToBank(ResourceType.GRAIN, 2);
-            returnToBank(ResourceType.ORE, 3);
-
-            board.placeCity(tr.nodeId, p);
+            GameCommand command = new BuildCityCommand(this, board, p, tr.nodeId);
+            commandManager.executeCommand(command);
 
             return "Built CITY at node " + tr.nodeId + ".";
         }
 
-        // Maritime Trade
+                // Maritime Trade
         if (tr.actionType == ActionType.MARITIME_TRADE) {
-            return executeMaritiмeTrade(p, tr.resourceToGive, tr.resourceToGet);
-        }
+            if (!canMaritiмeTrade(p, tr.resourceToGive, tr.resourceToGet)) {
+                return "Maritime trade failed: player needs 4 " + tr.resourceToGive
+                        + " and bank needs at least 1 " + tr.resourceToGet + ".";
+            }
 
-        return "";
+            GameCommand command = new MaritimeTradeCommand(this, p, tr.resourceToGive, tr.resourceToGet);
+            commandManager.executeCommand(command);
+
+            return "Maritime trade: gave 4 " + tr.resourceToGive + ", received 1 " + tr.resourceToGet + ".";
+        }
+         return "";
 
     }
+
+
+
+    
     /**
      * Returns how many cards of the given resource type the bank currently holds.
      *
@@ -493,6 +488,31 @@ public class Game {
         player.addResource(type, actualAmount);
 
         return actualAmount;
+    }
+
+        /**
+     * Takes exactly the requested amount of cards of a resource from the bank.
+     * Throws an exception if the bank does not have enough.
+     *
+     * @param player player receiving the cards
+     * @param type resource type
+     * @param amount exact amount to take
+     */
+    public void takeExactlyFromBank(Player player, ResourceType type, int amount) {
+        if (type == null) {
+            throw new IllegalArgumentException("Resource type cannot be null.");
+        }
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive.");
+        }
+
+        int index = type.ordinal();
+        if (resourceCardsInTheBank[index] < amount) {
+            throw new IllegalStateException("Bank does not have enough " + type + " cards.");
+        }
+
+        resourceCardsInTheBank[index] -= amount;
+        player.addResource(type, amount);
     }
 
     /**
