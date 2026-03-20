@@ -21,24 +21,10 @@ public class ComputerPlayer extends Player {
         super(playerId);
 
     }
-
-
-
-
-
-    /**
-     * Runs one turn for the computer player.
-     * Roll dice then collects resources, then try to build one thing (random).
-     *
-     * @param board game board
-     * @return a text summary of what happened this turn
-     */
     @Override
-    public Player.TurnResult turn(Board board, Game game){
+    protected Player.TurnResult choosePriorityTurnAction(Board board, Game game, TurnOptions turnOptions){
 
         // 0) Maritime trade: if holding >= 4 of any resource, trade with the bank before making a move
-        List<Player.TurnResult> candidates = new ArrayList<Player.TurnResult>();
-
         for (int resourceIndex = 0; resourceIndex < ResourceType.values().length; resourceIndex++)
         {
             ResourceType giveResource = ResourceType.values()[resourceIndex];
@@ -56,53 +42,17 @@ public class ComputerPlayer extends Player {
                 ResourceType getResource = allResourceTypes[shuffledIndices[candidateIndex]];
                 if (game.canMaritiмeTrade(this, giveResource, getResource))
                 {
-                    candidates.add(Player.TurnResult.maritimeTrade(
+                    return Player.TurnResult.maritimeTrade(
                             giveResource,
                             getResource,
                             "Computer trades 4 " + giveResource + " for 1 " + getResource
-                    ));
+                    );
                 }
             }
             // No valid trade found for this resource — continue checking others
         }
 
-        // 1) Find all valid moves between...
-        // --> Build road
-        // --> Build settlement
-        // --> Build city
-        int totalCards = 0;
-        for (int i = 0; i < ResourceType.values().length; i++) {
-            ResourceType type = ResourceType.values()[i];
-            totalCards += getResourceCount(type);
-        }
-
-        // a) validate user has enough resources before checking valid moves
-        boolean canBuildRoad = canAffordRoad();
-        boolean canBuildSettlement = canAffordSettlement();
-        boolean canBuildCity = canAffordCity();
-
-        if (!canBuildRoad && !canBuildSettlement && !canBuildCity && candidates.isEmpty()) {
-            return Player.TurnResult.pass("Cannot afford any roads or buildings.");
-        }
-
-        // b) Check valid placements
-        List<Integer> validRoadEdges = new ArrayList<Integer>();
-        List<Integer> validSettlementNodes = new ArrayList<Integer>();
-        List<Integer> validCityNodes = new ArrayList<Integer>();
-
-        if (canBuildRoad) {
-            validRoadEdges = findValidRoadPlacements(board);
-        }
-
-        if (canBuildSettlement) {
-            validSettlementNodes = findValidSettlementPlacements(board);
-        }
-
-        if (canBuildCity) {
-            validCityNodes = findValidCityPlacements(board);
-        }
-
-        if (canBuildRoad) {
+        if (turnOptions.canBuildRoad) {
             int gapEdge = findGapBridgingEdge(board);
             if (gapEdge != -1) {
                 return Player.TurnResult.buildRoad(gapEdge, "Chose to build ROAD to connect road segments");
@@ -114,61 +64,59 @@ public class ComputerPlayer extends Player {
             }
         }
 
-        if (canBuildRoad) {
-            for (int i = 0; i < validRoadEdges.size(); i++) {
-                int edgeIndex = validRoadEdges.get(i).intValue();
-                candidates.add(Player.TurnResult.buildRoad(edgeIndex, "Chose to build ROAD at edge " + edgeIndex));
-            }
+        return null;
+    }
+
+    @Override
+    protected boolean shouldAutoPassTurn(TurnOptions turnOptions) {
+        if (turnOptions.totalCards <= 7) {
+            return true;
         }
 
-        if (canBuildSettlement) {
-            for (int i = 0; i < validSettlementNodes.size(); i++) {
-                int nodeId = validSettlementNodes.get(i).intValue();
-                candidates.add(Player.TurnResult.buildSettlement(nodeId, "Chose to build SETTLEMENT at node " + nodeId));
-            }
+        if (!turnOptions.canAffordAnyBuild()) {
+            return true;
         }
 
-        if (canBuildCity) {
-            for (int i = 0; i < validCityNodes.size(); i++) {
-                int nodeId = validCityNodes.get(i).intValue();
-                candidates.add(Player.TurnResult.buildCity(nodeId, "Chose to build CITY at node " + nodeId));
-            }
+        return !turnOptions.hasAnyValidMove();
+    }
+
+    @Override
+    protected Player.TurnResult createAutoPassResult(TurnOptions turnOptions) {
+        if (turnOptions.totalCards <= 7) {
+            return Player.TurnResult.pass("Under 8 cards, so no move.");
         }
 
-
-        // 2) Randomize move between valid options
-        if (candidates.isEmpty()) {
-            return Player.TurnResult.pass("No valid moves to be made.");
+        if (!turnOptions.canAffordAnyBuild()) {
+            return Player.TurnResult.pass("Cannot afford any roads or buildings.");
         }
 
-        double bestScore = Double.NEGATIVE_INFINITY;
-        List<Player.TurnResult> best = new ArrayList<Player.TurnResult>();
+        return Player.TurnResult.pass("No valid moves to be made.");
+    }
 
-        for (int i = 0; i < candidates.size(); i++) {
-            Player.TurnResult tr = candidates.get(i);
+    @Override
+    protected Player.TurnResult chooseTurnAction(Board board, Game game, TurnOptions turnOptions) {
+        int totalOptions = turnOptions.validRoadEdges.size()
+                + turnOptions.validSettlementNodes.size()
+                + turnOptions.validCityNodes.size();
+        int choice = r.nextInt(totalOptions);
 
-            if (totalCards > 7 && cardsSpentBy(tr) == 0) {
-                continue;
-            }
-
-            double s = scoreImmediateValue(tr, totalCards);
-
-            if (s > bestScore) {
-                bestScore = s;
-                best.clear();
-                best.add(tr);
-            } else if (s == bestScore) {
-                best.add(tr);
-            }
+        // buildRoad
+        if (choice < turnOptions.validRoadEdges.size()) {
+            int edgeIndex = turnOptions.validRoadEdges.get(choice).intValue();
+            return Player.TurnResult.buildRoad(edgeIndex, "Chose to build ROAD at edge " + edgeIndex);
         }
 
-        if (best.isEmpty()) {
-            return Player.TurnResult.pass("No valid moves to be made.");
+        // buildSettlement
+        choice -= turnOptions.validRoadEdges.size();
+        if (choice < turnOptions.validSettlementNodes.size()) {
+            int nodeId = turnOptions.validSettlementNodes.get(choice).intValue();
+            return Player.TurnResult.buildSettlement(nodeId, "Chose to build SETTLEMENT at node " + nodeId);
         }
 
-        return best.get(r.nextInt(best.size()));
-
-
+        // buildCity
+        choice -= turnOptions.validSettlementNodes.size();
+        int nodeId = turnOptions.validCityNodes.get(choice).intValue();
+        return Player.TurnResult.buildCity(nodeId, "Chose to build CITY at node " + nodeId);
     }
 
 
@@ -212,34 +160,6 @@ public class ComputerPlayer extends Player {
         }
 
         return indices;
-    }
-
-    private double scoreImmediateValue(Player.TurnResult tr, int cardsBefore) {
-        double score = 0.0;
-
-        if (tr.actionType == ActionType.BUILD_SETTLEMENT || tr.actionType == ActionType.BUILD_CITY) {
-            score += 1.0;
-        }
-
-        if (tr.actionType == ActionType.BUILD_ROAD) {
-            score += 0.8;
-        }
-
-        int spent = cardsSpentBy(tr);
-        int after = cardsBefore - spent;
-        if (spent > 0 && after < 5) {
-            score += 0.5;
-        }
-
-        return score;
-    }
-
-    private int cardsSpentBy(Player.TurnResult tr) {
-        if (tr.actionType == ActionType.BUILD_ROAD) return 2;
-        if (tr.actionType == ActionType.BUILD_SETTLEMENT) return 4;
-        if (tr.actionType == ActionType.BUILD_CITY) return 5;
-        if (tr.actionType == ActionType.MARITIME_TRADE) return 4;
-        return 0;
     }
 
     private int findGapBridgingEdge(Board board)
