@@ -45,13 +45,26 @@ public abstract class Player {
 
     }
     /**
-     * Runs one turn decision for this player.
-     * Each subclass decides what to do and returns a TurnResult.
+     * Template method for one player turn.
+     * The shared setup happens here, while subclasses only decide what action to take.
      *
      * @param board game board
      * @return the chosen action for this turn
      */
-    public abstract TurnResult turn(Board board, Game game);
+    public final TurnResult turn(Board board, Game game) {
+        TurnOptions turnOptions = buildTurnOptions(board);
+
+        TurnResult priorityAction = choosePriorityTurnAction(board, game, turnOptions);
+        if (priorityAction != null) {
+            return priorityAction;
+        }
+
+        if (shouldAutoPassTurn(turnOptions)) {
+            return createAutoPassResult(turnOptions);
+        }
+
+        return chooseTurnAction(board, game, turnOptions);
+    }
 
     /**
      * Places the initial settlement and road during setup rounds.
@@ -62,6 +75,65 @@ public abstract class Player {
      * @return the node id where the settlement was placed
      */
     public abstract int placeInitialSettlementAndRoad(Board board, int roundNumber);
+
+    protected TurnResult choosePriorityTurnAction(Board board, Game game, TurnOptions turnOptions) {
+        return null;
+    }
+
+    protected boolean shouldAutoPassTurn(TurnOptions turnOptions) {
+        return false;
+    }
+
+    protected TurnResult createAutoPassResult(TurnOptions turnOptions) {
+        return TurnResult.pass("Passed.");
+    }
+
+    protected abstract TurnResult chooseTurnAction(Board board, Game game, TurnOptions turnOptions);
+
+    private TurnOptions buildTurnOptions(Board board) {
+        int totalCards = countTotalCards();
+
+        boolean canBuildRoad = canAffordRoad();
+        boolean canBuildSettlement = canAffordSettlement();
+        boolean canBuildCity = canAffordCity();
+
+        List<Integer> validRoadEdges = new ArrayList<Integer>();
+        List<Integer> validSettlementNodes = new ArrayList<Integer>();
+        List<Integer> validCityNodes = new ArrayList<Integer>();
+
+        if (canBuildRoad) {
+            validRoadEdges = findValidRoadPlacements(board);
+        }
+
+        if (canBuildSettlement) {
+            validSettlementNodes = findValidSettlementPlacements(board);
+        }
+
+        if (canBuildCity) {
+            validCityNodes = findValidCityPlacements(board);
+        }
+
+        return new TurnOptions(
+                totalCards,
+                canBuildRoad,
+                canBuildSettlement,
+                canBuildCity,
+                validRoadEdges,
+                validSettlementNodes,
+                validCityNodes
+        );
+    }
+
+    private int countTotalCards() {
+        int totalCards = 0;
+
+        for (int i = 0; i < ResourceType.values().length; i++) {
+            ResourceType type = ResourceType.values()[i];
+            totalCards += getResourceCount(type);
+        }
+
+        return totalCards;
+    }
 
 
 
@@ -378,6 +450,43 @@ public abstract class Player {
 
 
     /** Nested Classes */
+    protected static final class TurnOptions {
+
+        public final int totalCards;
+        public final boolean canBuildRoad;
+        public final boolean canBuildSettlement;
+        public final boolean canBuildCity;
+        public final List<Integer> validRoadEdges;
+        public final List<Integer> validSettlementNodes;
+        public final List<Integer> validCityNodes;
+
+        private TurnOptions(
+                int totalCards,
+                boolean canBuildRoad,
+                boolean canBuildSettlement,
+                boolean canBuildCity,
+                List<Integer> validRoadEdges,
+                List<Integer> validSettlementNodes,
+                List<Integer> validCityNodes
+        ) {
+            this.totalCards = totalCards;
+            this.canBuildRoad = canBuildRoad;
+            this.canBuildSettlement = canBuildSettlement;
+            this.canBuildCity = canBuildCity;
+            this.validRoadEdges = validRoadEdges;
+            this.validSettlementNodes = validSettlementNodes;
+            this.validCityNodes = validCityNodes;
+        }
+
+        public boolean canAffordAnyBuild() {
+            return canBuildRoad || canBuildSettlement || canBuildCity;
+        }
+
+        public boolean hasAnyValidMove() {
+            return !validRoadEdges.isEmpty() || !validSettlementNodes.isEmpty() || !validCityNodes.isEmpty();
+        }
+    }
+
     public static final class TurnResult {
 
         public final ActionType actionType;

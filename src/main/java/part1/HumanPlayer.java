@@ -18,7 +18,7 @@ public class HumanPlayer extends Player
     }
 
     @Override
-    public TurnResult turn(Board board, Game game)
+    protected TurnResult chooseTurnAction(Board board, Game game, TurnOptions turnOptions)
     {
         System.out.println("--- Player " + getPlayerId() + "'s turn ---");
         System.out.println("[Roll] [Go] [List] [Build [settlement [nodeId] | city [nodeId] | road [fromNodeId, toNodeId]]] [Trade [give] [get]]");
