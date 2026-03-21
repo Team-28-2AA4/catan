@@ -40,6 +40,7 @@ public class Game {
 
     private final Board board;
     private final List<Player> players;
+    private final List<GameObserver> observers;
     private final int[] resourceCardsInTheBank = new int[ResourceType.values().length];
     private final SecureRandom random = new SecureRandom();
 
@@ -62,6 +63,7 @@ public class Game {
 
         this.board = board;
         this.players = new ArrayList<>(players);
+        this.observers = new ArrayList<>();
 
         this.startingPlayerIndex = 0;
         this.currentPlayerIndex = 0;
@@ -74,6 +76,7 @@ public class Game {
         this.maxRounds = MAX_ROUNDS;
 
         this.commandManager=new CommandManager();
+        registerDefaultObservers();
     }
 
     public Game(Board board, List<Player> players, int usersmaxRounds) {
@@ -92,8 +95,7 @@ public class Game {
     public void startGame() {
         initBankCards();
         determineStartingPlayer();
-
-        StateJsonWriter.writeBaseMap(board, VISUALIZER_DIR + "base_map.json");
+        notifyGameStarted();
 
         playFirstTwoRoundsSetup();
         playMainGame();
@@ -156,16 +158,13 @@ public class Game {
      */
     private void playFirstTwoRoundsSetup() {
 
-        // Round 1
-        System.out.println("\nGame has started!\n");
-
         for (int step = 0; step < players.size(); step++){
             int index = getPlayerIndexClockwise(startingPlayerIndex, step);
             Player p = players.get(index);
 
             int settlementNodeId = p.placeInitialSettlementAndRoad(board, 1);
             displayTurnSummary(1, p.getPlayerId(), "Placed settlement and road at node " + settlementNodeId);
-            StateJsonWriter.writeState(board, VISUALIZER_DIR + "state.json");
+            notifyStateChanged();
 
             currentPlayerIndex = index;
         }
@@ -180,7 +179,7 @@ public class Game {
 
             int secondSettlementNodeId = p.placeInitialSettlementAndRoad(board, 2);
             addStartingResourcesFromSecondSettlement(p, secondSettlementNodeId);
-            StateJsonWriter.writeState(board, VISUALIZER_DIR + "state.json");
+            notifyStateChanged();
 
             currentPlayerIndex = index;
         }
@@ -227,7 +226,7 @@ public class Game {
                 String actionSummary = applyTurnResult(p, decision);
                 String finalTurnSummary = resourceCollectionSummary + actionSummary;
 
-                StateJsonWriter.writeState(board, VISUALIZER_DIR + "state.json");
+                notifyStateChanged();
                 displayTurnSummary(rounds, p.getPlayerId(), finalTurnSummary);
                 checkWinner();
 
@@ -244,7 +243,7 @@ public class Game {
         }
 
         if (!isWinner) {
-            System.out.println("\n\nGame Over! Max round reached.\n");
+            notifyGameEnded(true);
         }
     }
 
@@ -260,8 +259,7 @@ public class Game {
             if (p.getVictoryPoints() >= TARGET_VICTORY_POINTS) {
                 isWinner = true;
                 winner = p;
-
-                System.out.println("\n\nGame Over! Player " + p.getPlayerId() + " reached " + p.getVictoryPoints() + " victory points.\n");
+                notifyGameEnded(false);
 
                 return;
             }
@@ -625,7 +623,7 @@ public class Game {
             }
 
             int toDiscard = total / 2;
-            System.out.println("Player " + p.getPlayerId() + " has " + total + " cards and must discard " + toDiscard + ".");
+            displayInfoMessage("Player " + p.getPlayerId() + " has " + total + " cards and must discard " + toDiscard + ".");
 
             for (int d = 0; d < toDiscard; d++)
             {
@@ -661,7 +659,7 @@ public class Game {
         while (newTile == currentTile);
 
         board.setRobberTileId(newTile);
-        System.out.println("Robber moved to tile " + newTile + ".");
+        displayInfoMessage("Robber moved to tile " + newTile + ".");
         return newTile;
     }
 
@@ -700,7 +698,7 @@ public class Game {
 
         if (qualifyingPlayers.isEmpty())
         {
-            System.out.println("No adjacent players to steal from.");
+            displayInfoMessage("No adjacent players to steal from.");
             return;
         }
 
@@ -720,14 +718,14 @@ public class Game {
 
         if (victimHand.isEmpty())
         {
-            System.out.println("Player " + victim.getPlayerId() + " has no cards to steal.");
+            displayInfoMessage("Player " + victim.getPlayerId() + " has no cards to steal.");
             return;
         }
 
         ResourceType stolen = victimHand.get(random.nextInt(victimHand.size()));
         victim.spendResource(stolen, 1);
         roller.addResource(stolen, 1);
-        System.out.println("Player " + roller.getPlayerId() + " stole 1 " + stolen + " from Player " + victim.getPlayerId() + ".");
+        displayInfoMessage("Player " + roller.getPlayerId() + " stole 1 " + stolen + " from Player " + victim.getPlayerId() + ".");
     }
 
     public String awardResourcesForAllPlayers(int roll, int currentPlayerId) {
@@ -919,44 +917,18 @@ public class Game {
      * @param action message to print
      */
     private void displayTurnSummary(int roundNumber, int playerId, String action) {
-
-        System.out.println("[" + roundNumber + "] / [" + playerId + "]: " + action);
-
-
+        for (int i = 0; i < observers.size(); i++) {
+            observers.get(i).onTurnSummary(roundNumber, playerId, action);
+        }
     }
 
     /**
      * Prints a round summary for all players (resources, longest road streak, points).
      */
     private void displayRoundSummary() {
-
-        StringBuilder summary = new StringBuilder();
-        summary.append("Round " + rounds + " Summary: \n\n");
-
-        for (int i = 0; i < players.size(); i++) {
-            Player p = players.get(i);
-
-            summary.append("Player ").append(p.getPlayerId()).append(": ");
-
-            for (int r = 0; r < ResourceType.values().length; r++) {
-                ResourceType type = ResourceType.values()[r];
-
-                summary.append(type.name()).append("=").append(p.getResourceCount(type));
-
-                if (r < ResourceType.values().length - 1) {
-                    summary.append(", ");
-                }
-            }
-
-            summary.append(" | longestRoadStreak=").append(p.getLongestRoadStreak()).append(" | victoryPoints=").append(p.getVictoryPoints());
-            summary.append("\n\n");
-                    
+        for (int i = 0; i < observers.size(); i++) {
+            observers.get(i).onRoundSummary(rounds, players);
         }
-
-        summary.append("---------------------------------------------------------------------------------\n\n");
-        System.out.print(summary.toString());
-
-
     }
 
     /**
@@ -998,5 +970,55 @@ public class Game {
         return commandManager;
     }
 
-    
+    /**
+     * Adds one observer to receive game event notifications.
+     *
+     * @param observer observer to add
+     */
+    public void addObserver(GameObserver observer) {
+        if (observer != null) {
+            observers.add(observer);
+        }
+    }
+
+    /**
+     * Removes all registered observers.
+     * Mainly useful in tests where we want to install a custom observer.
+     */
+    public void clearObservers() {
+        observers.clear();
+    }
+
+    /**
+     * Registers the default observers used by the game.
+     * Console output and visualizer syncing stay outside the core game loop.
+     */
+    private void registerDefaultObservers() {
+        addObserver(new ConsoleGameObserver());
+        addObserver(new VisualizerGameObserver(VISUALIZER_DIR));
+    }
+
+    private void notifyGameStarted() {
+        for (int i = 0; i < observers.size(); i++) {
+            observers.get(i).onGameStarted(board);
+        }
+    }
+
+    private void notifyStateChanged() {
+        for (int i = 0; i < observers.size(); i++) {
+            observers.get(i).onStateChanged(board);
+        }
+    }
+
+    private void displayInfoMessage(String message) {
+        for (int i = 0; i < observers.size(); i++) {
+            observers.get(i).onInfoMessage(message);
+        }
+    }
+
+    private void notifyGameEnded(boolean maxRoundReached) {
+        for (int i = 0; i < observers.size(); i++) {
+            observers.get(i).onGameEnded(winner, rounds, maxRoundReached);
+        }
+    }
 }
